@@ -100,6 +100,20 @@ await test('the full pipeline composes', () => {
   assert.equal(postProcess('i sent the  jason file', dict), 'I sent the JSON file.');
 });
 
+await test('prompt delimiters echoed by the model are removed', () => {
+  // Exactly what a small on-device model produced: a correct answer with the
+  // closing tag stuck on the end.
+  assert.equal(unwrapModelOutput("Let's meet on Tuesday at 11.\n</transcript>"), "Let's meet on Tuesday at 11.");
+  assert.equal(unwrapModelOutput('<transcript>Hello there.</transcript>'), 'Hello there.');
+  assert.equal(unwrapModelOutput('Answer.\n</context>'), 'Answer.');
+  // A tag on its own line must not leave a hole behind it.
+  assert.equal(unwrapModelOutput('One.\n\n</transcript>\n\nTwo.'), 'One.\n\nTwo.');
+});
+
+await test('text that merely mentions a tag survives', () => {
+  assert.equal(unwrapModelOutput('Use a div instead of a span.'), 'Use a div instead of a span.');
+});
+
 await test('model output is unwrapped', () => {
   assert.equal(unwrapModelOutput('```\nHi.\n```'), 'Hi.');
   assert.equal(unwrapModelOutput('<think>x</think>\nHi.'), 'Hi.');

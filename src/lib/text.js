@@ -132,7 +132,12 @@ export function unwrapModelOutput(text) {
   // A whole-output code fence.
   const fence = out.match(/^```[a-z]*\n([\s\S]*?)\n?```$/i);
   if (fence) out = fence[1].trim();
+  // The delimiters we wrap the prompt in. A small model will happily echo
+  // </transcript> at the end of an otherwise perfect answer, and asking it not
+  // to is not a guarantee — so they are removed here rather than trusted away.
+  out = out.replace(/<\/?(transcript|context)>/gi, '').trim();
   // Matched wrapping quotes the user did not dictate.
   if (/^"[^"]*"$/.test(out) || /^'[^']*'$/.test(out)) out = out.slice(1, -1);
-  return out.trim();
+  // Removing a tag can leave the blank line it sat on behind it.
+  return out.replace(/\n{3,}/g, '\n\n').trim();
 }
