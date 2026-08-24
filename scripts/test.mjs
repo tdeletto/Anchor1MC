@@ -307,7 +307,7 @@ await test('the defaults are the ones we ship on purpose', () => {
   assert.equal(DEFAULTS.recording.maxDurationSec, 3000);
   assert.equal(DEFAULTS.enhancement.enabled, false, 'enhancement is opt-in');
   assert.equal(DEFAULTS.enhancement.provider, 'browser', 'on-device by default');
-  assert.equal(DEFAULTS.enhancement.browser.modelId, 'onnx-community/Qwen2.5-0.5B-Instruct');
+  assert.equal(DEFAULTS.enhancement.browser.modelId, 'onnx-community/Qwen3-0.6B-ONNX');
   assert.equal(DEFAULTS.enhancement.fallbackToRaw, true, 'a dead AI endpoint must not lose the dictation');
   assert.equal(DEFAULTS.hotkeys.modifierKey, 'AltRight');
   assert.equal(DEFAULTS.history.enabled, true);

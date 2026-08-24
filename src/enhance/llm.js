@@ -102,7 +102,17 @@ export function browserLlmStatus() {
 export async function chatViaBrowser(config, messages, { temperature = 0.2, onProgress, signal } = {}) {
   const pipe = await ensureBrowserLlm(config, { onProgress });
 
-  const out = await pipe(messages, {
+  // Qwen3 is a hybrid reasoning model and emits a <think> block unless told
+  // otherwise. unwrapModelOutput strips it, but the tokens are generated
+  // either way and rewriting a sentence needs no deliberation. /no_think is
+  // Qwen3's documented switch for this; it is only sent to models that
+  // understand it, since to anything else it is a stray token in the prompt.
+  const thinks = /qwen3/i.test(config.modelId ?? '');
+  const prepared = thinks
+    ? messages.map((m, i) => (i === messages.length - 1 ? { ...m, content: `${m.content} /no_think` } : m))
+    : messages;
+
+  const out = await pipe(prepared, {
     max_new_tokens: config.maxNewTokens ?? 512,
     temperature,
     do_sample: temperature > 0,

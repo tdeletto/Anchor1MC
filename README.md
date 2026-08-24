@@ -101,8 +101,11 @@ than transcribes. All of them are editable, and you can add your own.
 Three ways to run it, only the last of which involves anyone else's server:
 
 - **On this device** (default) — a small instruct model through WebGPU, using
-  the same runtime the speech models already load. Qwen2.5 0.5B out of the box;
-  1.5B is noticeably more reliable on self-corrections if you have the memory.
+  the same runtime the speech models already load. Qwen3 0.6B out of the box;
+  Qwen2.5 1.5B is more reliable again on self-corrections if you have the
+  memory. The AI enhancement page can run any of them over a fixed messy
+  sentence and report the result and the time, which is the only comparison
+  that means anything on your own hardware.
   Half-precision builds fall back to full precision automatically on GPUs
   without `shader-f16`.
 

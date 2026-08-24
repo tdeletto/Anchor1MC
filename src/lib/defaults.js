@@ -239,9 +239,10 @@ export const DEFAULTS = {
       apiKey: '',
     },
     browser: {
-      // 0.5B by default: cleanup and reformatting sit well within its ability,
-      // and it leaves room alongside the speech model on modest hardware.
-      modelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
+      // Qwen3 0.6B: a generation newer than Qwen2.5 0.5B at nearly the same
+      // size, and exported with the attention fusion this runtime accelerates,
+      // so it follows the rewrite rules more reliably without costing speed.
+      modelId: 'onnx-community/Qwen3-0.6B-ONNX',
       // Falls back to q4 automatically where the GPU has no shader-f16.
       dtype: 'q4f16',
       device: 'webgpu',
