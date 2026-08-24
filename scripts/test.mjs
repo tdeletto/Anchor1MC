@@ -37,7 +37,7 @@ async function test(name, fn) {
   }
 }
 
-const { postProcess, applyReplacements, unwrapModelOutput, autoCapitalize } = await load('src/lib/text.js');
+const { postProcess, applyReplacements, unwrapModelOutput, autoCapitalize, collapseRepetition } = await load('src/lib/text.js');
 const { resolveProfile, applyProfile, profileMatches, isSiteDisabled, makeProfile } = await load('src/lib/power-mode.js');
 const { SilenceDetector, rms } = await load('src/audio/vad.js');
 const { MelSpectrogram } = await load('src/audio/mel.js');
@@ -59,6 +59,33 @@ await test('replacements can be case-sensitive and regex', () => {
 
 await test('a malformed user regex does not break the pipeline', () => {
   assert.equal(applyReplacements('hello', [{ from: '([', to: 'x', regex: true }]), 'hello');
+});
+
+await test('a decoding loop is collapsed, not pasted', () => {
+  // The shape a real failure took: a few real words, then one word repeated to
+  // the end of the buffer.
+  const looped = `This is how an editor would Edit ${'The '.repeat(40)}${'This '.repeat(30)}${'i '.repeat(50)}`;
+  const { text, collapsed } = collapseRepetition(looped);
+  assert.ok(collapsed > 0);
+  assert.ok(text.length < 60, `expected a short result, got ${text.length} chars`);
+  assert.match(text, /^This is how an editor would Edit/, 'the real words survive');
+  assert.ok(!/The The The/.test(text));
+});
+
+await test('speech that genuinely repeats is left alone', () => {
+  for (const kept of ['no no no', 'I said that that is fine', 'very very good', 'ABC123 file edit view format tools help.']) {
+    assert.equal(collapseRepetition(kept).text, kept, `${kept} should be untouched`);
+  }
+});
+
+await test('repeated phrases collapse too, not just single words', () => {
+  assert.equal(collapseRepetition('and so on and so on and so on and so on and so on').text, 'and so on');
+  assert.equal(collapseRepetition('yes ok yes ok yes ok yes ok done').text, 'yes ok done');
+});
+
+await test('the pipeline collapses before anything else runs', () => {
+  const dict = { replacements: [], trimWhitespace: true, autoCapitalize: true, autoPunctuate: true };
+  assert.equal(postProcess(`hello ${'there '.repeat(30)}`, dict), 'Hello there.');
 });
 
 await test('capitalization handles sentences and the pronoun I', () => {

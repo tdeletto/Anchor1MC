@@ -84,6 +84,13 @@ export class WhisperEngine {
       stride_length_s: this.config.strideLengthSec ?? 5,
       task: translate ? 'translate' : 'transcribe',
       return_timestamps: false,
+      // Whisper decodes greedily and can fall into a loop, emitting one word
+      // hundreds of times. A mild penalty discourages it, and blocking a
+      // repeated six-word sequence caps any loop that still forms — six being
+      // long enough that ordinary speech never trips it. Anything that gets
+      // through is caught again by collapseRepetition on the text.
+      repetition_penalty: 1.1,
+      no_repeat_ngram_size: 6,
     };
     // 'auto' means let Whisper detect; anything else pins the decoder.
     if (language && language !== 'auto') options.language = language;

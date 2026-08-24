@@ -345,9 +345,14 @@
       ui.dot.className = 'dot error';
     }
 
-    if (progress?.message) ui.label.textContent = progress.total
-      ? `${progress.message} ${Math.round((progress.loaded / progress.total) * 100)}%`
-      : progress.message;
+    // Only while something is actually downloading. The final progress event
+    // says "Ready", which otherwise sat on the pill for the rest of the
+    // dictation in place of Listening, Transcribing and Inserting.
+    if (progress?.phase === 'downloading' && progress.message) {
+      ui.label.textContent = progress.total
+        ? `${progress.message} ${Math.round((progress.loaded / progress.total) * 100)}%`
+        : progress.message;
+    }
 
     if (partial && ui.uiSettings.showPartials) ui.partial.textContent = partial;
   }

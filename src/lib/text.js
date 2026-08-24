@@ -31,6 +31,57 @@ export function applyReplacements(text, replacements = []) {
   return out;
 }
 
+/**
+ * Collapse pathological repetition.
+ *
+ * Speech models can fall into a decoding loop and emit the same word or phrase
+ * hundreds of times — "The The The The…" — which is unmistakable to a reader
+ * and ruinous when pasted into a document. Natural speech does repeat, so the
+ * threshold is set where a person plausibly stops: three consecutive
+ * repetitions are kept, and a run longer than that is treated as a loop and
+ * reduced to one.
+ *
+ * Phrases as well as single words, since loops are not always one token wide.
+ *
+ * @param {string} text
+ * @param {number} [maxRun] consecutive repeats tolerated before collapsing
+ * @returns {{text: string, collapsed: number}} how many runs were collapsed
+ */
+export function collapseRepetition(text, maxRun = 3) {
+  if (!text) return { text: '', collapsed: 0 };
+  const words = text.split(/(\s+)/);          // keeps the separators
+  const tokens = words.filter((_, i) => i % 2 === 0);
+  const gaps = words.filter((_, i) => i % 2 === 1);
+  let collapsed = 0;
+
+  // Longest phrases first, so a four-word loop is not first mangled as four
+  // one-word ones.
+  for (let size = 4; size >= 1; size -= 1) {
+    for (let i = 0; i + size <= tokens.length;) {
+      const phrase = tokens.slice(i, i + size).join(' ').toLowerCase();
+      if (!phrase.trim()) { i += 1; continue; }
+
+      let runs = 1;
+      while (i + size * (runs + 1) <= tokens.length
+        && tokens.slice(i + size * runs, i + size * (runs + 1)).join(' ').toLowerCase() === phrase) {
+        runs += 1;
+      }
+
+      if (runs > maxRun) {
+        tokens.splice(i + size, size * (runs - 1));
+        gaps.splice(i + size, size * (runs - 1));
+        collapsed += 1;
+        i += size;
+      } else {
+        i += 1;
+      }
+    }
+  }
+
+  const out = tokens.reduce((acc, token, i) => acc + token + (gaps[i] ?? ''), '');
+  return { text: out.trim(), collapsed };
+}
+
 /** Capitalize the first letter of each sentence, and a standalone "i". */
 export function autoCapitalize(text) {
   let out = text.replace(/(^|[.!?]\s+|\n\s*)([a-z])/g, (m, lead, ch) => lead + ch.toUpperCase());
@@ -60,7 +111,10 @@ export function tidyWhitespace(text) {
  */
 export function postProcess(text, dict) {
   if (!text) return '';
-  let out = applyReplacements(text, dict.replacements);
+  // Before anything else: a loop that reached this far would otherwise have
+  // every later step applied to hundreds of copies of one word.
+  const { text: deduped } = collapseRepetition(text);
+  let out = applyReplacements(deduped, dict.replacements);
   if (dict.trimWhitespace) out = tidyWhitespace(out);
   if (dict.autoCapitalize) out = autoCapitalize(out);
   if (dict.autoPunctuate) out = autoPunctuate(out);
