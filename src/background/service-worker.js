@@ -256,7 +256,10 @@ async function stopRecording({ reason = 'hotkey' } = {}) {
     lastResult = { ...result, url: session.url, title: session.title };
     setState(STATE.INSERTING);
     await deliver(result);
-    await record(result).catch((err) => log.error('could not write to history', err));
+    await record(result).catch(async (err) => {
+      log.error('could not write to history', err);
+      await noteHistoryWrite({ ok: false, reason: err?.message ?? String(err) });
+    });
     await finishSession();
     log.info(`done in ${Math.round(result.latencyMs)}ms (${reason})`, { words: result.final.split(/\s+/).length });
   } catch (err) {
@@ -323,6 +326,21 @@ async function deliver(result) {
 }
 
 /**
+ * Record the outcome of the last history write where the options page can read
+ * it. A failure here is deliberately not fatal — the text is already in the
+ * user's document — but that means it would otherwise be invisible, and an
+ * empty history looks identical whether nothing was written or every write
+ * threw.
+ */
+async function noteHistoryWrite(outcome) {
+  try {
+    await chrome.storage.local.set({ lastHistoryWrite: { ...outcome, at: Date.now() } });
+  } catch (err) {
+    log.warn('could not record the history-write outcome', err?.message ?? err);
+  }
+}
+
+/**
  * Write the dictation to history.
  *
  * Failures here are logged, not thrown: the text is already in the user's
@@ -331,8 +349,16 @@ async function deliver(result) {
  */
 async function record(result) {
   const settings = session.settings;
-  if (!settings.history.enabled) return;
-  await history.addEntry({
+  if (!settings) {
+    // The worker was restarted mid-dictation and lost the session.
+    await noteHistoryWrite({ ok: false, reason: 'the session had no settings by the time the transcript arrived' });
+    return;
+  }
+  if (!settings.history.enabled) {
+    await noteHistoryWrite({ ok: false, reason: 'history is switched off in settings' });
+    return;
+  }
+  const entry = await history.addEntry({
     raw: result.raw,
     final: result.final,
     enhanced: result.enhanced,
@@ -343,9 +369,11 @@ async function record(result) {
     latencyMs: Math.round(result.latencyMs),
     url: session.url,
     title: session.title,
-    audio: result.audio ?? undefined,
   });
   await history.prune(settings.history);
+  const total = await history.countEntries();
+  await noteHistoryWrite({ ok: true, id: entry.id, total });
+  log.info(`history entry ${entry.id} written; ${total} total`);
   // An options page open in another tab renders its list once, at load, so it
   // has to be told that there is something new to show.
   send({ target: 'ui', type: MSG.HISTORY_CHANGED });

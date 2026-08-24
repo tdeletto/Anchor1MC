@@ -578,17 +578,19 @@
           <div class="info"><label>Maximum entries</label><div class="desc">Oldest are dropped past this.</div></div>
           <div class="control"><input type="number" min="0" max="100000" step="50" data-setting="history.maxEntries" /></div>
         </div>
-        <div class="row">
-          <div class="info"><label>Keep the audio too</label><div class="desc">Lets you replay and re-transcribe. Uses much more space.</div></div>
-          <div class="control"><input type="checkbox" data-setting="history.saveAudio" /></div>
-        </div>
-        <div class="row">
-          <div class="info"><label>Keep audio for</label><div class="desc">Days. Text outlives it.</div></div>
-          <div class="control"><input type="number" min="0" max="365" data-setting="history.audioRetainDays" /></div>
-        </div>
       </div>
 
       <div class="card"><div class="stats" id="history-stats"></div></div>
+
+      <div class="card">
+        <div class="row">
+          <div class="info">
+            <label>Storage</label>
+            <div class="desc" id="history-diagnostics">Checking…</div>
+          </div>
+          <div class="control"><button id="history-selftest">Write a test entry</button></div>
+        </div>
+      </div>
 
       <div class="toolbar">
         <input type="text" id="history-search" placeholder="Search transcripts…" />

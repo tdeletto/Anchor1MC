@@ -5,7 +5,7 @@
  */
 import { MSG } from '../lib/messaging.js';
 import { setLogLevel, logger } from '../lib/log.js';
-import { concat, resampleTo16k, encodeWav, TARGET_RATE } from '../audio/resample.js';
+import { concat, resampleTo16k, TARGET_RATE } from '../audio/resample.js';
 import { SilenceDetector, rms } from '../audio/vad.js';
 import { chirpWav } from '../audio/chirp.js';
 import { postProcess } from '../lib/text.js';
@@ -248,8 +248,6 @@ async function stopCaptureAndTranscribe({ context, settings: overrideSettings })
     enhanceError = result.error ?? null;
   }
 
-  const audio = settings.history.enabled && settings.history.saveAudio ? encodeWav(samples) : null;
-
   return {
     discarded: false,
     raw: cleaned,
@@ -263,7 +261,6 @@ async function stopCaptureAndTranscribe({ context, settings: overrideSettings })
     engine: settings.transcription.engine,
     language: settings.transcription.language,
     modeId: settings.enhancement.enabled ? settings.enhancement.activeModeId : null,
-    audio,
     sampleRate: TARGET_RATE,
   };
 }

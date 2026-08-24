@@ -376,7 +376,7 @@ if (fakeIdb) {
   const entry = (over = {}) => ({
     raw: 'hello world', final: 'Hello world.', enhanced: false, modeId: null,
     engine: 'whisper', language: 'auto', durationMs: 1500, latencyMs: 900,
-    url: 'https://example.com/', title: 'Example', audio: undefined, ...over,
+    url: 'https://example.com/', title: 'Example', ...over,
   });
 
   await test('an entry survives a write, a prune, and a read back', async () => {
@@ -386,7 +386,7 @@ if (fakeIdb) {
 
     // The service worker prunes immediately after every write; the entry it
     // just wrote must not be what gets pruned.
-    await history.prune({ retainDays: 30, maxEntries: 500, audioRetainDays: 7, saveAudio: false });
+    await history.prune({ retainDays: 30, maxEntries: 500 });
     assert.equal(await history.countEntries(), 1, 'prune must not delete a fresh entry');
 
     const list = await history.listEntries({ limit: 200, query: '' });
@@ -413,7 +413,7 @@ if (fakeIdb) {
   await test('retention limits actually delete', async () => {
     await history.clearHistory();
     for (let i = 0; i < 5; i += 1) await history.addEntry(entry({ final: `entry ${i}` }));
-    await history.prune({ retainDays: 30, maxEntries: 3, audioRetainDays: 7, saveAudio: false });
+    await history.prune({ retainDays: 30, maxEntries: 3 });
     assert.equal(await history.countEntries(), 3, 'maxEntries should cap the store');
   });
 

@@ -35,9 +35,8 @@ function done(request) {
 
 /**
  * @param {object} entry
- * @param {string} entry.raw       transcript straight from the engine
- * @param {string} entry.final     what was actually inserted
- * @param {Blob=}  entry.audio     original recording, when audio retention is on
+ * @param {string} entry.raw    transcript straight from the engine
+ * @param {string} entry.final  what was actually inserted
  */
 export async function addEntry(entry) {
   const record = {
@@ -80,9 +79,7 @@ export async function listEntries({ limit = 100, offset = 0, query = '' } = {}) 
         || (v.title || '').toLowerCase().includes(needle);
       if (matches) {
         if (skipped >= offset) {
-          // Strip audio from list payloads; it is fetched on demand.
-          const { audio, ...rest } = v;
-          out.push({ ...rest, hasAudio: !!audio });
+          out.push(v);
         } else {
           skipped += 1;
         }
@@ -110,12 +107,11 @@ export async function countEntries() {
   return done((await tx('readonly')).count());
 }
 
-/** Drop old entries, strip expired audio, and enforce the entry ceiling. */
-export async function prune({ retainDays, maxEntries, audioRetainDays, saveAudio }) {
+/** Drop entries past the age or count limit. */
+export async function prune({ retainDays, maxEntries }) {
   const store = await tx('readwrite');
   const now = Date.now();
   const entryCutoff = retainDays > 0 ? now - retainDays * 864e5 : 0;
-  const audioCutoff = audioRetainDays > 0 ? now - audioRetainDays * 864e5 : 0;
   const keep = [];
 
   await new Promise((resolve, reject) => {
@@ -130,8 +126,8 @@ export async function prune({ retainDays, maxEntries, audioRetainDays, saveAudio
         cursor.delete();
       } else {
         keep.push(v.id);
-        const audioExpired = v.audio && (!saveAudio || (audioCutoff && v.ts < audioCutoff));
-        if (audioExpired) {
+        // Audio retention was removed; reclaim the space any older entry holds.
+        if (v.audio) {
           const { audio, ...rest } = v;
           cursor.update(rest);
         }

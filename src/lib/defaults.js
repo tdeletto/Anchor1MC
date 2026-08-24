@@ -277,8 +277,6 @@ export const DEFAULTS = {
     enabled: true,
     retainDays: 30,
     maxEntries: 500,
-    saveAudio: false,
-    audioRetainDays: 7,
   },
 
   powerMode: {

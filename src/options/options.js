@@ -527,6 +527,34 @@ function renderProfiles() {
 
 let historyQuery = '';
 
+/**
+ * Report what the database actually holds, and how the last write went.
+ *
+ * An empty list has several very different causes — nothing recorded yet,
+ * history switched off, a worker that lost its session, a failing write — and
+ * they are indistinguishable from the list alone.
+ */
+async function renderHistoryDiagnostics() {
+  const line = $('#history-diagnostics');
+  try {
+    const count = await history.countEntries();
+    const { lastHistoryWrite: last } = await chrome.storage.local.get('lastHistoryWrite');
+
+    const parts = [`${count} ${count === 1 ? 'entry' : 'entries'} in the database.`];
+    if (!last) {
+      parts.push('No dictation has tried to write yet.');
+    } else {
+      const when = new Date(last.at).toLocaleString();
+      parts.push(last.ok
+        ? `Last write succeeded at ${when}.`
+        : `Last write did not happen at ${when}: ${last.reason}`);
+    }
+    line.textContent = parts.join(' ');
+  } catch (err) {
+    line.textContent = `Could not read the database: ${err.message}`;
+  }
+}
+
 async function renderHistory() {
   const list = $('#history-list');
   let entries;
@@ -534,6 +562,7 @@ async function renderHistory() {
   try {
     entries = await history.listEntries({ limit: 200, query: historyQuery });
     totals = await history.stats();
+    renderHistoryDiagnostics();
   } catch (err) {
     // Without this the section just renders empty, which is indistinguishable
     // from having nothing recorded yet.
@@ -611,19 +640,6 @@ async function renderHistory() {
       raw.className = 'raw';
       raw.textContent = `Before enhancement: ${entry.raw}`;
       card.append(raw);
-    }
-
-    if (entry.hasAudio) {
-      const play = document.createElement('button');
-      play.textContent = 'Play audio';
-      play.style.marginTop = '8px';
-      play.addEventListener('click', async () => {
-        const full = await history.getEntry(entry.id);
-        if (!full?.audio) return;
-        const audio = new Audio(URL.createObjectURL(full.audio));
-        audio.play();
-      });
-      card.append(play);
     }
 
     return card;
@@ -806,6 +822,23 @@ function wireEvents() {
   });
 
   $('#refresh-history').addEventListener('click', () => renderHistory());
+
+  // Writes straight from this page, bypassing the worker entirely. If the entry
+  // appears, the database and this list are fine and the problem is upstream in
+  // the dictation path; if it does not, the problem is here.
+  $('#history-selftest').addEventListener('click', async () => {
+    try {
+      await history.addEntry({
+        raw: 'test entry', final: 'Test entry written from the settings page.',
+        engine: 'self-test', language: 'n/a', durationMs: 0, latencyMs: 0,
+        url: location.href, title: 'Anchor1MC settings',
+      });
+      toast('Test entry written.');
+    } catch (err) {
+      toast(`Could not write: ${err.message}`);
+    }
+    renderHistory();
+  });
 
   // Progress and state pushed from the background.
   chrome.runtime.onMessage.addListener((message) => {
