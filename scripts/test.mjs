@@ -37,7 +37,7 @@ async function test(name, fn) {
   }
 }
 
-const { postProcess, applyReplacements, unwrapModelOutput, autoCapitalize, collapseRepetition } = await load('src/lib/text.js');
+const { postProcess, applyReplacements, unwrapModelOutput, autoCapitalize, collapseRepetition, assessEnhancement } = await load('src/lib/text.js');
 const { resolveProfile, applyProfile, profileMatches, isSiteDisabled, makeProfile } = await load('src/lib/power-mode.js');
 const { SilenceDetector, rms } = await load('src/audio/vad.js');
 const { MelSpectrogram } = await load('src/audio/mel.js');
@@ -120,6 +120,48 @@ await test('model output is unwrapped', () => {
   assert.equal(unwrapModelOutput('Here is the text:\n```\nHi.\n```'), 'Hi.');
   assert.equal(unwrapModelOutput('"Hi."'), 'Hi.');
   assert.equal(unwrapModelOutput('Say "hi" to them.'), 'Say "hi" to them.');
+});
+
+// ------------------------------------------------- enhancement assessment --
+
+const SPOKEN = "Um, let's meet on, um, Mond- no, Tuesday at, ah, noon";
+
+await test('a good rewrite is accepted', () => {
+  assert.equal(assessEnhancement(SPOKEN, "Let's meet on Tuesday at noon.").ok, true);
+});
+
+await test('a degenerate rewrite is rejected rather than inserted', () => {
+  // The reported failure: one short cycle repeated to the token limit.
+  const looped = Array(40).fill('To\nTo\nFrom').join('\n');
+  const verdict = assessEnhancement(SPOKEN, looped);
+  assert.equal(verdict.ok, false);
+  assert.match(verdict.reason, /repeated/);
+});
+
+await test('output unrelated to the speech is rejected', () => {
+  const verdict = assessEnhancement(SPOKEN, 'The quick brown fox jumps over the lazy dog.');
+  assert.equal(verdict.ok, false);
+  assert.match(verdict.reason, /unrelated/);
+});
+
+await test('a runaway answer is rejected', () => {
+  const verdict = assessEnhancement(SPOKEN, "Let's meet on Tuesday at noon. ".repeat(12));
+  assert.equal(verdict.ok, false);
+});
+
+await test('empty output is rejected', () => {
+  assert.equal(assessEnhancement(SPOKEN, '   ').ok, false);
+});
+
+await test('generative modes may legitimately invent words', () => {
+  // Answering a question shares almost nothing with the question.
+  const answer = 'Tuesday at noon works. I will send an invitation shortly.';
+  assert.equal(assessEnhancement(SPOKEN, answer).ok, false, 'rejected as a rewrite');
+  assert.equal(assessEnhancement(SPOKEN, answer, { generative: true }).ok, true, 'allowed as an answer');
+});
+
+await test('a very short transcript is not judged on overlap', () => {
+  assert.equal(assessEnhancement('hello there', 'Hi!').ok, true);
 });
 
 // ------------------------------------------------------------ power mode --

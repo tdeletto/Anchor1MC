@@ -121,6 +121,56 @@ export function postProcess(text, dict) {
   return out;
 }
 
+const words = (text) => (text.toLowerCase().match(/[\p{L}\p{N}']+/gu) ?? []);
+
+/**
+ * Decide whether an enhancement is fit to insert.
+ *
+ * A small model can degenerate — repeating one word to the token limit, or
+ * emitting text with no relation to what was said. Inserting that into
+ * someone's document is far worse than inserting the raw transcript, and the
+ * failure is obvious enough to detect: a rewrite should reuse the speaker's
+ * words, and should not be much longer than what it rewrites.
+ *
+ * Generative modes are exempt from the overlap and length tests, since
+ * answering a question or summarizing legitimately produces new words.
+ *
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function assessEnhancement(input, output, { generative = false } = {}) {
+  const out = (output ?? '').trim();
+  if (!out) return { ok: false, reason: 'the model returned nothing' };
+
+  const outWords = words(out);
+  if (!outWords.length) return { ok: false, reason: 'the model returned no words' };
+
+  // Repetition, whatever the mode: nothing legitimate collapses this far.
+  const collapsed = words(collapseRepetition(out).text);
+  if (collapsed.length < outWords.length * 0.7) {
+    return { ok: false, reason: 'the model repeated itself' };
+  }
+
+  if (generative) return { ok: true };
+
+  const inWords = words(input ?? '');
+  if (inWords.length < 4) return { ok: true }; // too short to judge
+
+  if (outWords.length > inWords.length * 3 + 15) {
+    return { ok: false, reason: 'the model produced far more text than was dictated' };
+  }
+
+  // A rewrite should be built from the speaker's own words. Measured over
+  // distinct words so a repeated one cannot carry the score.
+  const spoken = new Set(inWords);
+  const distinct = [...new Set(outWords)];
+  const shared = distinct.filter((w) => spoken.has(w)).length;
+  if (shared / distinct.length < 0.4) {
+    return { ok: false, reason: 'the model produced text unrelated to what was dictated' };
+  }
+
+  return { ok: true };
+}
+
 /** Strip wrapper text a small model may add despite instructions. */
 export function unwrapModelOutput(text) {
   let out = (text ?? '').trim();

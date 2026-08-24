@@ -8,7 +8,8 @@
  * never a command.
  */
 import { chatViaEndpoint, chatViaBrowser } from './llm.js';
-import { unwrapModelOutput } from '../lib/text.js';
+import { unwrapModelOutput, assessEnhancement } from '../lib/text.js';
+import { DISFLUENCY_RULES } from '../lib/defaults.js';
 import { logger } from '../lib/log.js';
 
 const log = logger('enhance');
@@ -33,7 +34,12 @@ function renderContext(context, capture) {
 }
 
 function buildMessages({ transcript, mode, context, capture, dictionaryWords }) {
-  let system = mode.prompt;
+  // Rewriting modes all face the same problem first — the input is speech, not
+  // writing — so the rules for that are shared rather than restated in each
+  // prompt. They come after the mode's own instruction and just before the
+  // input, where a small model weighs them most heavily. Generative modes are
+  // answering rather than rewriting, so they are exempt.
+  let system = mode.generative ? mode.prompt : `${mode.prompt}\n\n${DISFLUENCY_RULES}`;
 
   if (dictionaryWords?.length) {
     system += `\n\nThe speaker uses these terms; spell them exactly this way when they appear: ${dictionaryWords.join(', ')}.`;
@@ -82,7 +88,16 @@ export async function enhance(transcript, settings, { context, onProgress, signa
       : await chatViaEndpoint(cfg.endpoint, messages, { temperature: mode.temperature ?? 0.2, timeoutMs: cfg.timeoutMs, signal });
 
     const text = unwrapModelOutput(raw);
-    if (!text) throw new Error('The AI model returned nothing.');
+
+    // A degenerate rewrite is worse than no rewrite: the transcript is already
+    // correct, and pasting a loop or a hallucination into someone's document
+    // loses what they said. Fall back rather than pass it on.
+    const verdict = assessEnhancement(transcript, text, { generative: !!mode.generative });
+    if (!verdict.ok) {
+      log.warn(`discarding the enhancement: ${verdict.reason}`);
+      return { text: transcript, enhanced: false, error: `AI enhancement was discarded — ${verdict.reason}.` };
+    }
+
     log.debug('enhanced', { mode: mode.id, before: transcript.length, after: text.length });
     return { text, enhanced: true, modeId: mode.id };
   } catch (err) {

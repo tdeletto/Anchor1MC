@@ -42,8 +42,8 @@ export const MODEL_CATALOG = {
     { id: 'onnx-community/whisper-large-v3-turbo', name: 'Whisper large v3 turbo', note: 'Best Whisper quality. WebGPU and patience required.', sizes: { q4: '~900 MB', q8: '~1.6 GB' } },
   ],
   llm: [
-    { id: 'onnx-community/Qwen2.5-0.5B-Instruct', name: 'Qwen2.5 0.5B Instruct', note: 'Tiny. Fine for punctuation and cleanup.', sizes: { q4f16: '~400 MB' } },
-    { id: 'onnx-community/Qwen2.5-1.5B-Instruct', name: 'Qwen2.5 1.5B Instruct', note: 'Better rewriting. Recommended with 8 GB RAM.', sizes: { q4f16: '~1.1 GB' } },
+    { id: 'onnx-community/Qwen2.5-0.5B-Instruct', name: 'Qwen2.5 0.5B Instruct', note: 'Smallest and quickest. Handles punctuation and filler removal, but degenerates on longer or messier speech more often than the 1.5B.', sizes: { q4f16: '~400 MB' } },
+    { id: 'onnx-community/Qwen2.5-1.5B-Instruct', name: 'Qwen2.5 1.5B Instruct', note: 'Markedly more reliable at self-corrections and rewriting. Worth the extra download if you have the memory.', sizes: { q4f16: '~1.1 GB' } },
     { id: 'onnx-community/Llama-3.2-1B-Instruct', name: 'Llama 3.2 1B Instruct', note: 'Alternative 1B option.', sizes: { q4f16: '~900 MB' } },
   ],
 };

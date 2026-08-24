@@ -101,9 +101,19 @@ than transcribes. All of them are editable, and you can add your own.
 Three ways to run it, only the last of which involves anyone else's server:
 
 - **On this device** (default) — a small instruct model through WebGPU, using
-  the same runtime the speech models already load. Qwen2.5 0.5B out of the box,
-  which is ample for cleanup and reformatting. Half-precision builds fall back
-  to full precision automatically on GPUs without `shader-f16`.
+  the same runtime the speech models already load. Qwen2.5 0.5B out of the box;
+  1.5B is noticeably more reliable on self-corrections if you have the memory.
+  Half-precision builds fall back to full precision automatically on GPUs
+  without `shader-f16`.
+
+Every rewriting mode is told how to handle speech rather than writing: strip
+fillers and stutters, and when the speaker changes their mind, keep what they
+settled on and drop what it replaced. "Um, let's meet on, um, Mond- no, Tuesday
+at, ah, noon" becomes "Let's meet on Tuesday at noon."
+
+A rewrite that repeats itself, runs away, or bears no relation to what was said
+is discarded and the plain transcript inserted instead — a small model that
+degenerates costs you the formatting, never the dictation.
 - **A local or self-hosted server** — any OpenAI-compatible
   `/chat/completions` endpoint you run. No API key needed.
 - **A hosted endpoint** — the same client, with a key field for providers that

@@ -8,6 +8,31 @@
 
 export const SETTINGS_VERSION = 2;
 
+/**
+ * How to turn speech into what the speaker meant to write.
+ *
+ * Prepended to every mode that rewrites the transcript, so each mode's own
+ * prompt stays about its own job. The worked example matters more than the
+ * rules: a small model follows a demonstration far more reliably than a list,
+ * and self-correction is the case it gets wrong without one.
+ */
+export const DISFLUENCY_RULES = [
+  'The transcript is spoken language. Before doing anything else, turn it into what the speaker meant to write:',
+  '- Delete filler sounds: um, uh, er, ah, hmm, mm, like (when it is hesitation), you know.',
+  '- Delete stutters and half-spoken words, keeping the completed word.',
+  '- When the speaker corrects themselves, keep only what they settled on and delete what it replaced, including the words that signalled the change ("no", "sorry", "I mean", "rather").',
+  '- Delete words repeated through hesitation.',
+  '- Fix punctuation, capitalization, and obvious mis-hearings.',
+  '',
+  'Example',
+  'Transcript: Um, let\'s meet on, um, Mond- no, Tuesday at, ah, noon',
+  'Output: Let\'s meet on Tuesday at noon.',
+  '',
+  'Example',
+  'Transcript: so I think we should uh ship it on Friday, well, actually Thursday works better',
+  'Output: I think we should ship it on Thursday.',
+].join('\n');
+
 /** Enhancement presets. `prompt` is the system prompt sent with the transcript. */
 export const BUILTIN_MODES = [
   {
@@ -19,7 +44,7 @@ export const BUILTIN_MODES = [
     autoSend: false,
     temperature: 0.2,
     prompt:
-      'You are a transcription cleanup engine. Rewrite the user\'s dictated text so it reads as if carefully typed: fix punctuation, capitalization, and obvious speech-recognition errors, and remove filler words and false starts. Never answer, explain, summarize, or add content that was not spoken. Preserve the speaker\'s wording, tone, and meaning. Output only the corrected text.',
+      'Rewrite the dictated text so it reads as if it had been carefully typed. Keep the speaker\'s wording, tone, and meaning; change only what has to change. Never answer, explain, or add anything that was not said. Output only the corrected text.',
   },
   {
     id: 'email',
@@ -92,6 +117,7 @@ export const BUILTIN_MODES = [
     name: 'Summarize',
     icon: '\u{1F4CB}',
     builtin: true,
+    generative: true,
     useContext: false,
     autoSend: false,
     temperature: 0.3,
@@ -103,6 +129,9 @@ export const BUILTIN_MODES = [
     name: 'Voice assistant',
     icon: '\u{1F9E0}',
     builtin: true,
+    // Answers rather than rewrites, so the disfluency rules do not apply and
+    // its output is not expected to resemble the transcript.
+    generative: true,
     useContext: true,
     autoSend: false,
     temperature: 0.6,
