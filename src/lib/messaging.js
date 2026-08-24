@@ -34,6 +34,7 @@ export const MSG = {
   PRELOAD_LLM: 'preload-llm',
   UNLOAD_LLM: 'unload-llm',
   LLM_STATUS: 'llm-status',
+  TEST_ENHANCEMENT: 'test-enhancement',
   UNLOAD_MODEL: 'unload-model',
   CLEAR_MODEL_CACHE: 'clear-model-cache',
   PLAY_SOUND: 'play-sound',

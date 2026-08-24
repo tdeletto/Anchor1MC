@@ -42,6 +42,18 @@ export const MODEL_CATALOG = {
     { id: 'onnx-community/whisper-large-v3-turbo', name: 'Whisper large v3 turbo', note: 'Best Whisper quality. WebGPU and patience required.', sizes: { q4: '~900 MB', q8: '~1.6 GB' } },
   ],
   llm: [
+    {
+      id: 'onnx-community/Qwen3-0.6B-ONNX',
+      name: 'Qwen3 0.6B',
+      note: 'A generation newer than Qwen2.5 at nearly the same size, and its ONNX export is built for this runtime specifically. The best starting point for speed with reliable instruction-following. May emit a reasoning block, which is stripped.',
+      sizes: { q4f16: '~450 MB' },
+    },
+    {
+      id: 'HuggingFaceTB/SmolLM2-360M-Instruct',
+      name: 'SmolLM2 360M',
+      note: 'The fastest option here, and the least capable. Punctuation and filler removal only — it will not reliably resolve a change of mind.',
+      sizes: { q4f16: '~280 MB' },
+    },
     { id: 'onnx-community/Qwen2.5-0.5B-Instruct', name: 'Qwen2.5 0.5B Instruct', note: 'Smallest and quickest. Handles punctuation and filler removal, but degenerates on longer or messier speech more often than the 1.5B.', sizes: { q4f16: '~400 MB' } },
     { id: 'onnx-community/Qwen2.5-1.5B-Instruct', name: 'Qwen2.5 1.5B Instruct', note: 'Markedly more reliable at self-corrections and rewriting. Worth the extra download if you have the memory.', sizes: { q4f16: '~1.1 GB' } },
     { id: 'onnx-community/Llama-3.2-1B-Instruct', name: 'Llama 3.2 1B Instruct', note: 'Alternative 1B option.', sizes: { q4f16: '~900 MB' } },

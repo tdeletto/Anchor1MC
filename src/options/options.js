@@ -787,6 +787,45 @@ function wireEvents() {
   });
   $('#unload').addEventListener('click', async () => { await ask(MSG.UNLOAD_MODEL); refreshModelStatus(); });
 
+  // A sentence with everything the rewrite is supposed to handle: two fillers,
+  // a half-spoken word, and a correction.
+  const ENHANCEMENT_SAMPLE = "Um, let's meet on, um, Mond- no, Tuesday at, ah, noon";
+
+  $('#test-enhancement').addEventListener('click', async () => {
+    const status = $('#enhancement-sample-status');
+    status.className = 'status';
+    status.textContent = 'Running…';
+    $('#enhancement-sample-row').hidden = false;
+    $('#enhancement-sample-input').textContent = `Said: ${ENHANCEMENT_SAMPLE}`;
+    $('#enhancement-sample-output').textContent = '…';
+    try {
+      const enabled = settings.enhancement.enabled;
+      const result = await ask(MSG.TEST_ENHANCEMENT, {
+        // Run even when enhancement is switched off, so a model can be tried
+        // before committing to it.
+        settings: { ...settings, enhancement: { ...settings.enhancement, enabled: true } },
+        sample: ENHANCEMENT_SAMPLE,
+      });
+      if (!result) throw new Error('No answer from the audio worker.');
+      if (result.ok === false) throw new Error(result.error);
+
+      $('#enhancement-sample-output').textContent = result.text;
+      if (result.enhanced) {
+        status.textContent = `${(result.ms / 1000).toFixed(1)}s`;
+        status.className = 'status ok';
+      } else {
+        status.textContent = result.error ? 'fell back' : 'no change';
+        status.className = 'status bad';
+        $('#enhancement-sample-output').textContent += result.error ? `  — ${result.error}` : '';
+      }
+      if (!enabled) toast('Sample run. AI enhancement is still switched off for real dictations.');
+    } catch (err) {
+      status.textContent = 'failed';
+      status.className = 'status bad';
+      $('#enhancement-sample-output').textContent = err.message;
+    }
+  });
+
   $('#preload-llm').addEventListener('click', async () => {
     const bar = $('#llm-progress');
     bar.firstElementChild.style.width = '0%';

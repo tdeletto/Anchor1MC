@@ -398,6 +398,16 @@ const handlers = {
     await unloadBrowserLlm();
     return browserLlmStatus();
   },
+  async [MSG.TEST_ENHANCEMENT]({ settings, sample }) {
+    // Runs the real enhancement path on a fixed transcript, so a model can be
+    // judged on this machine rather than on a benchmark from another one.
+    const { enhance } = await load.enhance();
+    const started = performance.now();
+    const result = await enhance(sample, settings, {
+      onProgress: (p) => toBackground(MSG.MODEL_PROGRESS, { progress: p, kind: 'ai' }),
+    });
+    return { ...result, ms: Math.round(performance.now() - started) };
+  },
   async [MSG.LLM_STATUS]() {
     const { browserLlmStatus } = await load.llm();
     return browserLlmStatus();

@@ -462,6 +462,29 @@
       </div>
 
       <div class="card">
+        <div class="row stack">
+          <div class="info">
+            <label>Try it on a sample</label>
+            <div class="desc">
+              Runs the active mode and model over a deliberately messy sentence — fillers, a stutter,
+              and a change of mind — and reports what came back and how long it took. The quickest way
+              to compare models on this machine.
+            </div>
+          </div>
+          <div class="control">
+            <button id="test-enhancement">Run sample</button>
+            <span class="status" id="enhancement-sample-status">Not run</span>
+          </div>
+        </div>
+        <div class="row" id="enhancement-sample-row" hidden>
+          <div class="info">
+            <div class="desc"><em id="enhancement-sample-input"></em></div>
+            <div class="text" id="enhancement-sample-output" style="margin-top: 6px; font-weight: 550;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="row">
           <div class="info"><label>What the model may see</label><div class="desc">Context is only sent for modes that ask for it. Page text is off by default.</div></div>
           <div class="control">
