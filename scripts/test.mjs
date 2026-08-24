@@ -341,7 +341,7 @@ await test('every provider a user may have stored is preserved', async () => {
 
 // ------------------------------------------------------------ model urls --
 
-const { hfApiUrl, hfFileUrl, bytesForModel, clearCachedModel } = await load('src/lib/models.js');
+const { hfApiUrl, hfFileUrl, bytesForModel, clearCachedModel, clearModelCache } = await load('src/lib/models.js');
 
 await test('the Hugging Face API url keeps the owner/name separator', () => {
   // Encoding the whole repo id turns the slash into %2F and the API answers 400.
@@ -658,6 +658,34 @@ await test('deleting with no model selected is a no-op rather than a purge', asy
   globalThis.caches = fake;
   assert.equal(await clearCachedModel(''), 0);
   assert.equal(fake._remaining().length, 1);
+  delete globalThis.caches;
+});
+
+await test('deleting everything counts the files in both stores', async () => {
+  const fake = fakeCaches({
+    'anchor1mc-models-v1': ['https://hf.co/istupakov/parakeet/encoder.onnx'],
+    'transformers-cache': [
+      'https://hf.co/onnx-community/whisper-base/onnx/a.onnx',
+      'https://hf.co/onnx-community/Qwen3-0.6B-ONNX/onnx/b.onnx',
+    ],
+  });
+  globalThis.caches = fake;
+  assert.equal(await clearModelCache(), 3);
+  assert.deepEqual(fake._remaining(), []);
+  delete globalThis.caches;
+});
+
+await test('a prefixed delete stays inside our own store', async () => {
+  const fake = fakeCaches({
+    'anchor1mc-models-v1': ['https://hf.co/a/keep.onnx', 'https://other.host/b/drop.onnx'],
+    'transformers-cache': ['https://other.host/c/untouched.onnx'],
+  });
+  globalThis.caches = fake;
+  assert.equal(await clearModelCache('https://other.host/'), 1);
+  assert.deepEqual(fake._remaining().sort(), [
+    'https://hf.co/a/keep.onnx',
+    'https://other.host/c/untouched.onnx',
+  ]);
   delete globalThis.caches;
 });
 

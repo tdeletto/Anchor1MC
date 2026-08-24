@@ -270,18 +270,32 @@ export async function clearCachedModel(modelId) {
   return removed;
 }
 
+/**
+ * Delete every cached model, or only ours below a URL prefix.
+ *
+ * Both stores are walked entry by entry rather than dropping the Transformers.js
+ * one wholesale, because the count is what the settings page reports back — and
+ * Whisper and the AI model both live in that store, so dropping it uncounted
+ * meant a full delete reported zero files removed.
+ *
+ * @returns {Promise<number>} files removed
+ */
 export async function clearModelCache(urlPrefix = null) {
-  const c = await cache();
-  const keys = await c.keys();
+  const names = urlPrefix ? [CACHE_NAME] : [CACHE_NAME, TRANSFORMERS_CACHE];
   let removed = 0;
-  for (const req of keys) {
-    if (urlPrefix && !req.url.startsWith(urlPrefix)) continue;
-    if (await c.delete(req)) removed += 1;
+  for (const name of names) {
+    let store;
+    try {
+      store = await caches.open(name);
+    } catch {
+      continue; // nothing has been written to this one yet
+    }
+    for (const req of await store.keys()) {
+      if (urlPrefix && !req.url.startsWith(urlPrefix)) continue;
+      if (await store.delete(req)) removed += 1;
+    }
   }
-  // Transformers.js keeps its own cache; clear it alongside ours.
-  if (!urlPrefix) {
-    try { await caches.delete(TRANSFORMERS_CACHE); } catch { /* nothing cached yet */ }
-  }
+  log.info(`removed ${removed} cached file(s)${urlPrefix ? ` under ${urlPrefix}` : ''}`);
   return removed;
 }
 

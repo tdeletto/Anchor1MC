@@ -423,6 +423,13 @@ const handlers = {
   async [MSG.CLEAR_MODEL_CACHE]({ urlPrefix } = {}) {
     const { unloadEngine } = await load.registry();
     await unloadEngine();
+    // The AI model has to go too, and for the same reason the single-model
+    // delete unloads first: a resident pipeline keeps answering from memory,
+    // so its files would vanish while enhancement carried on working.
+    if (!urlPrefix) {
+      const { unloadBrowserLlm } = await load.llm();
+      await unloadBrowserLlm();
+    }
     const removed = await clearModelCache(urlPrefix ?? null);
     return { removed };
   },

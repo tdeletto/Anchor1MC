@@ -276,8 +276,15 @@ async function refreshModelStatus() {
     $('#llm-cache-line').textContent = llmBytes
       ? `${formatBytes(llmBytes)} cached for ${llmId}.`
       : `Nothing cached for ${llmId} yet — it downloads the first time enhancement runs.`;
+
+    // Everything, including models no longer selected anywhere — which is the
+    // only place their download is visible at all.
+    $('#all-cache-line').textContent = status.cacheBytes
+      ? `${status.cacheHuman} across ${entries.length} file(s), speech and AI models together.`
+      : 'Nothing downloaded yet.';
   } catch (err) {
     $('#cache-line').textContent = `Could not read the model cache: ${err.message}`;
+    $('#all-cache-line').textContent = `Could not read the model cache: ${err.message}`;
   }
 }
 
@@ -940,6 +947,18 @@ function wireEvents() {
   $('#export-json').addEventListener('click', async () => download('anchor1mc-history.json', await history.exportEntries('json')));
   $('#export-csv').addEventListener('click', async () => download('anchor1mc-history.csv', await history.exportEntries('csv'), 'text/csv'));
   $('#export-txt').addEventListener('click', async () => download('anchor1mc-history.txt', await history.exportEntries('txt'), 'text/plain'));
+
+  $('#clear-all-models').addEventListener('click', async () => {
+    if (!confirm('Delete every downloaded model, speech and AI? Each will download again the next time it is needed.')) return;
+    try {
+      const result = await ask(MSG.CLEAR_MODEL_CACHE);
+      if (!result) throw new Error('No answer from the audio worker.');
+      toast(`Deleted ${result.removed ?? 0} file(s). Every model will download again on next use.`);
+    } catch (err) {
+      toast(`Could not delete: ${err.message}`);
+    }
+    refreshModelStatus();
+  });
 
   $('#export-settings').addEventListener('click', () => download('anchor1mc-settings.json', JSON.stringify(settings, null, 2)));
   $('#import-settings').addEventListener('click', () => $('#import-file').click());
