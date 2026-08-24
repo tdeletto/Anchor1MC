@@ -219,12 +219,13 @@
     .partial { color: #d4d4d8; font-weight: 400; max-width: 46ch;
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .hint { color: #71717a; font-size: 11px; }
-    .profile { color: #a78bfa; font-size: 11px; }
+    .profile { color: #d4d4d8; font-size: 11px; }
     @media (prefers-color-scheme: light) {
       .wrap { background: rgba(255, 255, 255, 0.96); color: #18181b; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16); }
       .bar { background: #71717a; }
       .timer, .hint { color: #52525b; }
       .partial { color: #3f3f46; }
+      .profile { color: #52525b; }
     }
   `;
 

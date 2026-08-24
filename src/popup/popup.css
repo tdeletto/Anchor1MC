@@ -1,10 +1,14 @@
 :root {
   color-scheme: light dark;
   --bg: #ffffff; --panel: #f4f4f5; --border: #e4e4e7;
-  --text: #18181b; --muted: #71717a; --accent: #6d5cf6; --danger: #e5484d;
+  --text: #18181b; --muted: #71717a;
+  --accent: #0c0c0e; --on-accent: #fafafa; --danger: #c8262b;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #18181b; --panel: #232327; --border: #2f2f35; --text: #f4f4f5; --muted: #a1a1aa; --accent: #8b7cff; }
+  :root {
+    --bg: #18181b; --panel: #232327; --border: #2f2f35; --text: #f4f4f5; --muted: #a1a1aa;
+    --accent: #fafafa; --on-accent: #0c0c0e; --danger: #f0575c;
+  }
 }
 * { box-sizing: border-box; }
 body {
@@ -19,12 +23,12 @@ header .title { font-weight: 650; flex: 1; font-size: 14px; }
 .record {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
   padding: 11px; border-radius: 10px; border: 1px solid var(--border);
-  background: var(--accent); color: #fff; font: inherit; font-weight: 600;
+  background: var(--accent); color: var(--on-accent); font: inherit; font-weight: 600;
   cursor: pointer;
 }
 .record:hover { filter: brightness(1.07); }
-.record.active { background: var(--danger); }
-.record .dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+.record.active { background: var(--danger); color: #fff; }
+.record .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .record.active .dot { animation: pulse 1.1s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 

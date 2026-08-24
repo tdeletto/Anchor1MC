@@ -6,10 +6,14 @@
   --border: #e4e4e7;
   --text: #18181b;
   --muted: #71717a;
-  --accent: #6d5cf6;
-  --accent-soft: #efecff;
-  --danger: #e5484d;
-  --ok: #12a150;
+  /* Monochrome, taking its cue from the mark: a near-black ground and an
+     off-white figure. --on-accent is whatever sits legibly on --accent, which
+     inverts between themes and so cannot be hard-coded at the call site. */
+  --accent: #0c0c0e;
+  --accent-soft: #ececef;
+  --on-accent: #fafafa;
+  --danger: #c8262b;
+  --ok: #0e7a3d;
   --radius: 10px;
 }
 
@@ -21,8 +25,11 @@
     --border: #2a2a2f;
     --text: #f4f4f5;
     --muted: #a1a1aa;
-    --accent: #8b7cff;
-    --accent-soft: #221f3d;
+    --accent: #fafafa;
+    --accent-soft: #26262b;
+    --on-accent: #0c0c0e;
+    --danger: #f0575c;
+    --ok: #3ecf7f;
   }
 }
 
@@ -107,7 +114,7 @@ button {
   padding: 7px 13px; font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
 }
 button:hover { border-color: var(--accent); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 button.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 

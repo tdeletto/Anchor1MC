@@ -115,7 +115,7 @@ you record · start/stop chirps · settings import and export.
 ```bash
 npm install       # only needed to re-vendor
 npm run vendor    # refresh vendor/ from node_modules
-npm run icons     # regenerate the PNG icons
+npm run icons     # regenerate the PNG icons from icons/source.png
 npm run verify    # static checks + logic tests
 npm run zip       # dist/anchor1mc-<version>.zip
 ```
