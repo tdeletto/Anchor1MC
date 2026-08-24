@@ -10,6 +10,7 @@ import { SilenceDetector, rms } from '../audio/vad.js';
 import { chirpWav } from '../audio/chirp.js';
 import { postProcess } from '../lib/text.js';
 import { cacheStats, clearModelCache, formatBytes } from '../lib/models.js';
+import * as historyStore from '../lib/history.js';
 
 /**
  * Everything above is small and dependency-free. The engines are not: they pull
@@ -437,6 +438,17 @@ const handlers = {
     // Awaited and returned, so the Test button can report what actually
     // happened instead of always claiming success.
     return playTone(frequency, seconds, volume);
+  },
+  async [MSG.PERSIST_HISTORY]({ entry, retention }) {
+    // Written here rather than in the service worker. This document is an
+    // ordinary long-lived DOM context, like the settings page where writes
+    // demonstrably work; the worker is not, and can be torn down between the
+    // transcript arriving and the entry being committed.
+    const written = await historyStore.addEntry(entry);
+    await historyStore.prune(retention);
+    const total = await historyStore.countEntries();
+    log.info(`history entry ${written.id} written; ${total} total`);
+    return { id: written.id, total };
   },
   async [MSG.COPY_TO_CLIPBOARD]({ text }) {
     return { ok: copyToClipboard(text) };

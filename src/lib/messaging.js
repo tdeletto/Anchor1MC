@@ -38,6 +38,7 @@ export const MSG = {
   CLEAR_MODEL_CACHE: 'clear-model-cache',
   PLAY_SOUND: 'play-sound',
   COPY_TO_CLIPBOARD: 'copy-to-clipboard',
+  PERSIST_HISTORY: 'persist-history',
   PROBE_CAPABILITIES: 'probe-capabilities',
   LIST_DEVICES: 'list-devices',
   TEST_ENDPOINT: 'test-endpoint',

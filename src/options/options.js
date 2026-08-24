@@ -545,9 +545,16 @@ async function renderHistoryDiagnostics() {
       parts.push('No dictation has tried to write yet.');
     } else {
       const when = new Date(last.at).toLocaleString();
-      parts.push(last.ok
-        ? `Last write succeeded at ${when}.`
-        : `Last write did not happen at ${when}: ${last.reason}`);
+      // 'started' still showing means the attempt began and never finished,
+      // which is a different fault from one that reported an error.
+      parts.push({
+        written: `Last dictation was saved at ${when}.`,
+        skipped: `Last dictation was not saved at ${when}: ${last.reason}`,
+        failed: `Last dictation failed to save at ${when}: ${last.reason}`,
+        started: `A save began at ${when} and never finished`
+          + ` (session state "${last.state}", settings ${last.hasSettings ? 'present' : 'missing'},`
+          + ` history ${last.enabled === null ? 'unknown' : (last.enabled ? 'on' : 'off')}).`,
+      }[last.phase] ?? `Last write reported: ${JSON.stringify(last)}`);
     }
     line.textContent = parts.join(' ');
   } catch (err) {

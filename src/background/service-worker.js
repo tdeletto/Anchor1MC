@@ -12,7 +12,6 @@ import { MSG, STATE, send } from '../lib/messaging.js';
 import { getSettings, updateSettings } from '../lib/settings.js';
 import { setLogLevel, logger } from '../lib/log.js';
 import { resolveProfile, applyProfile, isSiteDisabled } from '../lib/power-mode.js';
-import * as history from '../lib/history.js';
 
 const log = logger('sw');
 
@@ -258,7 +257,7 @@ async function stopRecording({ reason = 'hotkey' } = {}) {
     await deliver(result);
     await record(result).catch(async (err) => {
       log.error('could not write to history', err);
-      await noteHistoryWrite({ ok: false, reason: err?.message ?? String(err) });
+      await noteHistoryWrite({ phase: 'failed', reason: err?.message ?? String(err) });
     });
     await finishSession();
     log.info(`done in ${Math.round(result.latencyMs)}ms (${reason})`, { words: result.final.split(/\s+/).length });
@@ -349,31 +348,42 @@ async function noteHistoryWrite(outcome) {
  */
 async function record(result) {
   const settings = session.settings;
+  // Recorded before anything is attempted, so "the write failed" stays
+  // distinguishable from "the write was never reached".
+  await noteHistoryWrite({
+    phase: 'started',
+    state: session.state,
+    hasSettings: !!settings,
+    enabled: settings?.history?.enabled ?? null,
+  });
+
   if (!settings) {
-    // The worker was restarted mid-dictation and lost the session.
-    await noteHistoryWrite({ ok: false, reason: 'the session had no settings by the time the transcript arrived' });
+    await noteHistoryWrite({ phase: 'skipped', reason: 'the session had no settings by the time the transcript arrived' });
     return;
   }
   if (!settings.history.enabled) {
-    await noteHistoryWrite({ ok: false, reason: 'history is switched off in settings' });
+    await noteHistoryWrite({ phase: 'skipped', reason: 'history is switched off in settings' });
     return;
   }
-  const entry = await history.addEntry({
-    raw: result.raw,
-    final: result.final,
-    enhanced: result.enhanced,
-    modeId: result.modeId,
-    engine: result.engine,
-    language: result.language,
-    durationMs: Math.round(result.durationMs),
-    latencyMs: Math.round(result.latencyMs),
-    url: session.url,
-    title: session.title,
+
+  const { id, total } = await callOffscreen(MSG.PERSIST_HISTORY, {
+    entry: {
+      raw: result.raw,
+      final: result.final,
+      enhanced: result.enhanced,
+      modeId: result.modeId,
+      engine: result.engine,
+      language: result.language,
+      durationMs: Math.round(result.durationMs),
+      latencyMs: Math.round(result.latencyMs),
+      url: session.url,
+      title: session.title,
+    },
+    retention: { retainDays: settings.history.retainDays, maxEntries: settings.history.maxEntries },
   });
-  await history.prune(settings.history);
-  const total = await history.countEntries();
-  await noteHistoryWrite({ ok: true, id: entry.id, total });
-  log.info(`history entry ${entry.id} written; ${total} total`);
+
+  await noteHistoryWrite({ phase: 'written', ok: true, id, total });
+  log.info(`history entry ${id} written; ${total} total`);
   // An options page open in another tab renders its list once, at load, so it
   // has to be told that there is something new to show.
   send({ target: 'ui', type: MSG.HISTORY_CHANGED });
