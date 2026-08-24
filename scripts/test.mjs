@@ -197,7 +197,7 @@ await test('every provider a user may have stored is preserved', async () => {
 
 // ------------------------------------------------------------ model urls --
 
-const { hfApiUrl, hfFileUrl } = await load('src/lib/models.js');
+const { hfApiUrl, hfFileUrl, bytesForModel } = await load('src/lib/models.js');
 
 await test('the Hugging Face API url keeps the owner/name separator', () => {
   // Encoding the whole repo id turns the slash into %2F and the API answers 400.
@@ -217,6 +217,27 @@ await test('file urls keep nested paths intact', () => {
 
 await test('unsafe characters in a segment are still escaped', () => {
   assert.equal(hfApiUrl('own er/na me'), 'https://huggingface.co/api/models/own%20er/na%20me');
+});
+
+await test('cached bytes are attributed to the right model', () => {
+  // Both models cache into the same store, so the panels have to tell them
+  // apart by repo id rather than by which cache the entry sits in.
+  const entries = [
+    { url: 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/encoder.onnx', size: 60_000_000 },
+    { url: 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/decoder.onnx', size: 50_000_000 },
+    { url: 'https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/onnx/model_q4f16.onnx', size: 400_000_000 },
+  ];
+  assert.equal(bytesForModel(entries, 'onnx-community/whisper-base'), 110_000_000);
+  assert.equal(bytesForModel(entries, 'onnx-community/Qwen2.5-0.5B-Instruct'), 400_000_000);
+  assert.equal(bytesForModel(entries, 'onnx-community/whisper-small'), 0, 'an uncached model reports nothing');
+  assert.equal(bytesForModel(entries, ''), 0);
+});
+
+await test('a model name that prefixes another is not double counted', () => {
+  const entries = [
+    { url: 'https://huggingface.co/onnx-community/whisper-base.en/resolve/main/m.onnx', size: 10 },
+  ];
+  assert.equal(bytesForModel(entries, 'onnx-community/whisper-base'), 0, 'whisper-base must not claim whisper-base.en');
 });
 
 // -------------------------------------------------------------------- vad --

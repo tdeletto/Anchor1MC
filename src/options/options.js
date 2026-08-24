@@ -2,7 +2,7 @@
 import { getSettings, updateSettings, resetSettings, saveSettings, getPath, setPath } from '../lib/settings.js';
 import { BUILTIN_MODES } from '../lib/defaults.js';
 import { MSG } from '../lib/messaging.js';
-import { MODEL_CATALOG, formatBytes } from '../lib/models.js';
+import { MODEL_CATALOG, formatBytes, bytesForModel } from '../lib/models.js';
 import { makeProfile } from '../lib/power-mode.js';
 import * as history from '../lib/history.js';
 
@@ -67,7 +67,10 @@ function onSettingsApplied(path) {
   if (path === 'enhancement.provider') renderProviderPanels();
   if (path === 'enhancement.modes' || path === 'enhancement.activeModeId') renderModeSelect();
   // Download sizes and model notes depend on the model and precision picked.
-  if (path.startsWith('transcription.') || path.startsWith('enhancement.browser.')) renderModelSelects();
+  if (path.startsWith('transcription.') || path.startsWith('enhancement.browser.')) {
+    renderModelSelects();
+    refreshModelStatus();
+  }
   renderDerived();
 }
 
@@ -182,28 +185,55 @@ function renderModelSelects() {
     : '';
 }
 
+/** Which model id each panel is reporting on, given the current settings. */
+function speechModelId() {
+  const t = settings.transcription;
+  if (t.engine === 'parakeet') return t.parakeet.modelId;
+  if (t.engine === 'whisper') return t.whisper.modelId;
+  return null; // remote and Chrome speech download nothing
+}
+
 async function refreshModelStatus() {
   try {
     const status = await ask(MSG.MODEL_STATUS);
-    if (status?.ok === false) throw new Error(status.error);
+    if (!status) throw new Error('No answer from the audio worker.');
+    if (status.ok === false) throw new Error(status.error);
+    const entries = status.entries ?? [];
+
     $('#model-state').textContent = status.error
       ? `Engine unavailable: ${status.error}`
       : (status.loaded ? `Loaded: ${status.id} (${status.provider ?? 'cpu'})` : 'Nothing loaded');
-    $('#cache-line').textContent = status.cacheBytes
-      ? `${status.cacheHuman} of models cached on this device.`
-      : 'No models cached yet.';
+
+    const speechId = speechModelId();
+    const speechBytes = bytesForModel(entries, speechId);
+    $('#cache-line').textContent = speechId
+      ? (speechBytes
+        ? `${formatBytes(speechBytes)} cached for ${speechId}.`
+        : `Nothing cached for ${speechId} yet — it downloads on first use.`)
+      : 'This engine downloads nothing.';
+
+    // The AI model lives in the same cache store, so one call covers both.
+    const llmId = settings.enhancement.browser.modelId;
+    const llmBytes = bytesForModel(entries, llmId);
+    const llm = await ask(MSG.LLM_STATUS).catch(() => null);
+    $('#llm-state').textContent = llm?.loaded ? `Loaded: ${llm.key}` : 'Nothing loaded';
+    $('#llm-cache-line').textContent = llmBytes
+      ? `${formatBytes(llmBytes)} cached for ${llmId}.`
+      : `Nothing cached for ${llmId} yet — it downloads the first time enhancement runs.`;
   } catch (err) {
     $('#cache-line').textContent = `Could not read the model cache: ${err.message}`;
   }
 }
 
-function showProgress(progress) {
-  const bar = $('#dl-progress');
+/** @param {'speech'|'ai'} kind which download this progress belongs to */
+function showProgress(progress, kind = 'speech') {
+  const bar = $(kind === 'ai' ? '#llm-progress' : '#dl-progress');
+  const label = $(kind === 'ai' ? '#llm-state' : '#model-state');
   if (!progress) { bar.hidden = true; return; }
   bar.hidden = false;
   const pct = progress.total ? Math.round((progress.loaded / progress.total) * 100) : 0;
   bar.firstElementChild.style.width = `${pct}%`;
-  $('#model-state').textContent = progress.total
+  label.textContent = progress.total
     ? `${progress.message} ${pct}% (${formatBytes(progress.loaded)} / ${formatBytes(progress.total)})`
     : progress.message;
   if (progress.phase === 'ready') setTimeout(() => { bar.hidden = true; refreshModelStatus(); }, 800);
@@ -646,6 +676,25 @@ function wireEvents() {
     }
   });
   $('#unload').addEventListener('click', async () => { await ask(MSG.UNLOAD_MODEL); refreshModelStatus(); });
+
+  $('#preload-llm').addEventListener('click', async () => {
+    const bar = $('#llm-progress');
+    bar.firstElementChild.style.width = '0%';
+    bar.hidden = false;
+    $('#llm-state').textContent = 'Starting…';
+    try {
+      const result = await ask(MSG.PRELOAD_LLM, { config: settings.enhancement.browser });
+      if (!result) throw new Error('No answer from the audio worker.');
+      if (result.ok === false) throw new Error(result.error);
+      toast('AI model loaded.');
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      bar.hidden = true;
+      refreshModelStatus();
+    }
+  });
+  $('#unload-llm').addEventListener('click', async () => { await ask(MSG.UNLOAD_LLM); refreshModelStatus(); });
   $('#clear-cache').addEventListener('click', async () => {
     if (!confirm('Delete every cached model? They will download again next time you dictate.')) return;
     await ask(MSG.CLEAR_MODEL_CACHE);
@@ -761,7 +810,7 @@ function wireEvents() {
   // Progress and state pushed from the background.
   chrome.runtime.onMessage.addListener((message) => {
     if (message?.target !== 'ui') return false;
-    if (message.type === MSG.MODEL_PROGRESS) showProgress(message.progress);
+    if (message.type === MSG.MODEL_PROGRESS) showProgress(message.progress, message.kind);
     if (message.type === MSG.HISTORY_CHANGED) renderHistory();
     return false;
   });

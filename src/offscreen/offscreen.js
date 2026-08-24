@@ -215,7 +215,7 @@ async function stopCaptureAndTranscribe({ context, settings: overrideSettings })
   } else {
     const { getEngine, scheduleUnload } = await load.registry();
     const engine = await getEngine(settings, {
-      onProgress: (p) => toBackground(MSG.MODEL_PROGRESS, { progress: p }),
+      onProgress: (p) => toBackground(MSG.MODEL_PROGRESS, { progress: p, kind: 'speech' }),
     });
     const result = await engine.transcribe(samples, {
       language: settings.transcription.language,
@@ -238,7 +238,7 @@ async function stopCaptureAndTranscribe({ context, settings: overrideSettings })
     const { enhance } = await load.enhance();
     const result = await enhance(cleaned, settings, {
       context,
-      onProgress: (p) => toBackground(MSG.MODEL_PROGRESS, { progress: p }),
+      onProgress: (p) => toBackground(MSG.MODEL_PROGRESS, { progress: p, kind: 'ai' }),
     });
     // Replacements run again so dictionary spellings survive the rewrite.
     final = settings.dictionary.replacements.length
@@ -363,7 +363,7 @@ const handlers = {
   },
   async [MSG.PRELOAD_MODEL]({ settings }) {
     const { getEngine, engineStatus } = await load.registry();
-    await getEngine(settings, { onProgress: (p) => toBackground(MSG.MODEL_PROGRESS, { progress: p }) });
+    await getEngine(settings, { onProgress: (p) => toBackground(MSG.MODEL_PROGRESS, { progress: p, kind: 'speech' }) });
     return engineStatus();
   },
   async [MSG.UNLOAD_MODEL]() {
@@ -387,6 +387,22 @@ const handlers = {
       log.error('engine modules failed to load', err);
     }
     return { ...engine, cacheBytes: stats.bytes, cacheHuman: formatBytes(stats.bytes), entries: stats.entries };
+  },
+  async [MSG.PRELOAD_LLM]({ config }) {
+    const { ensureBrowserLlm, browserLlmStatus } = await load.llm();
+    await ensureBrowserLlm(config, {
+      onProgress: (p) => toBackground(MSG.MODEL_PROGRESS, { progress: p, kind: 'ai' }),
+    });
+    return browserLlmStatus();
+  },
+  async [MSG.UNLOAD_LLM]() {
+    const { unloadBrowserLlm, browserLlmStatus } = await load.llm();
+    await unloadBrowserLlm();
+    return browserLlmStatus();
+  },
+  async [MSG.LLM_STATUS]() {
+    const { browserLlmStatus } = await load.llm();
+    return browserLlmStatus();
   },
   async [MSG.CLEAR_MODEL_CACHE]({ urlPrefix } = {}) {
     const { unloadEngine } = await load.registry();

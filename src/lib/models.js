@@ -13,6 +13,9 @@ import { logger } from './log.js';
 
 const log = logger('models');
 const CACHE_NAME = 'anchor1mc-models-v1';
+/** Transformers.js keeps its own store, so Whisper and the on-device LLM land
+ *  here rather than in ours. Counting only our cache made both invisible. */
+const TRANSFORMERS_CACHE = 'transformers-cache';
 const HF = 'https://huggingface.co';
 
 export const MODEL_CATALOG = {
@@ -190,19 +193,39 @@ export async function getCachedText(url, opts) {
   return hit.text();
 }
 
-/** Total bytes held in the model cache, and the per-URL breakdown. */
+/** Total bytes cached across every store we use, with a per-URL breakdown. */
 export async function cacheStats() {
-  const c = await cache();
-  const keys = await c.keys();
   const entries = [];
   let bytes = 0;
-  for (const req of keys) {
-    const res = await c.match(req);
-    const size = Number(res?.headers.get('content-length')) || (await res.clone().blob()).size;
-    bytes += size;
-    entries.push({ url: req.url, size });
+  for (const name of [CACHE_NAME, TRANSFORMERS_CACHE]) {
+    let store;
+    try {
+      store = await caches.open(name);
+    } catch {
+      continue; // nothing has been written to this one yet
+    }
+    for (const req of await store.keys()) {
+      const res = await store.match(req);
+      if (!res) continue;
+      const size = Number(res.headers.get('content-length')) || (await res.clone().blob()).size;
+      bytes += size;
+      entries.push({ url: req.url, size, cache: name });
+    }
   }
   return { bytes, entries };
+}
+
+/**
+ * Bytes cached for one model, matched on its repo id appearing in the URL.
+ * @param {{url: string, size: number}[]} entries from cacheStats()
+ * @param {string} modelId e.g. 'onnx-community/whisper-base'
+ */
+export function bytesForModel(entries, modelId) {
+  if (!modelId) return 0;
+  const needle = `/${modelId}/`;
+  return entries
+    .filter((e) => e.url.includes(needle))
+    .reduce((total, e) => total + e.size, 0);
 }
 
 export async function clearModelCache(urlPrefix = null) {
@@ -215,7 +238,7 @@ export async function clearModelCache(urlPrefix = null) {
   }
   // Transformers.js keeps its own cache; clear it alongside ours.
   if (!urlPrefix) {
-    try { await caches.delete('transformers-cache'); } catch { /* nothing cached yet */ }
+    try { await caches.delete(TRANSFORMERS_CACHE); } catch { /* nothing cached yet */ }
   }
   return removed;
 }

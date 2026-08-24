@@ -50,7 +50,7 @@ let browserPipe = null;
 let browserKey = null;
 
 /** On-device generation. First call downloads the model. */
-export async function chatViaBrowser({ modelId, dtype = 'q4f16', device = 'webgpu', maxNewTokens = 512 }, messages, { temperature = 0.2, onProgress, signal } = {}) {
+export async function ensureBrowserLlm({ modelId, dtype = 'q4f16', device = 'webgpu' }, { onProgress } = {}) {
   const { env, pipeline } = await import('../../vendor/transformers/transformers.web.min.js');
   env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('vendor/ort/');
   env.backends.onnx.wasm.proxy = false;
@@ -89,9 +89,21 @@ export async function chatViaBrowser({ modelId, dtype = 'q4f16', device = 'webgp
     if (!browserPipe) throw new Error(`Could not load ${modelId} on this device: ${lastError?.message ?? lastError}`);
     browserKey = key;
   }
+  onProgress?.({ phase: 'ready', message: 'Ready' });
+  return browserPipe;
+}
 
-  const out = await browserPipe(messages, {
-    max_new_tokens: maxNewTokens,
+/** Whether the on-device model is currently resident. */
+export function browserLlmStatus() {
+  return { loaded: !!browserPipe, key: browserKey };
+}
+
+/** @returns {Promise<string>} assistant text from the on-device model */
+export async function chatViaBrowser(config, messages, { temperature = 0.2, onProgress, signal } = {}) {
+  const pipe = await ensureBrowserLlm(config, { onProgress });
+
+  const out = await pipe(messages, {
+    max_new_tokens: config.maxNewTokens ?? 512,
     temperature,
     do_sample: temperature > 0,
     return_full_text: false,

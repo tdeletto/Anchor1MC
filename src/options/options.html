@@ -261,7 +261,11 @@
         </div>
       </div>
 
-      <h3>Downloaded models</h3>
+      <h3>Speech model download</h3>
+      <p class="hint" style="margin: -8px 0 12px;">
+        The model that turns your voice into text. The AI enhancement model is downloaded separately,
+        under <a href="#ai">AI enhancement</a>.
+      </p>
       <div class="card">
         <div class="row">
           <div class="info">
@@ -436,6 +440,24 @@
         <div class="row">
           <div class="info"><label>Longest reply</label><div class="desc">Tokens. Higher costs time on long dictations.</div></div>
           <div class="control"><input type="number" min="64" max="4096" step="64" data-setting="enhancement.browser.maxNewTokens" /></div>
+        </div>
+      </div>
+
+      <h3>AI model download</h3>
+      <p class="hint" style="margin: -8px 0 12px;">
+        Only for the on-device provider. Nothing is downloaded when you use an endpoint.
+      </p>
+      <div class="card" data-provider-panel="browser">
+        <div class="row">
+          <div class="info">
+            <label id="llm-state">Nothing loaded</label>
+            <div class="desc" id="llm-cache-line">Checking…</div>
+            <div class="progress" id="llm-progress" hidden><div></div></div>
+          </div>
+          <div class="control">
+            <button id="preload-llm">Download &amp; load now</button>
+            <button id="unload-llm">Unload</button>
+          </div>
         </div>
       </div>
 

@@ -380,6 +380,7 @@ const HANDLED = new Set([
   MSG.GET_STATE, MSG.START_FROM_UI, MSG.STOP_FROM_UI, MSG.RETRY_LAST,
   MSG.SET_ACTIVE_MODE, MSG.CONTENT_READY,
   MSG.PRELOAD_MODEL, MSG.UNLOAD_MODEL, MSG.MODEL_STATUS, MSG.CLEAR_MODEL_CACHE,
+  MSG.PRELOAD_LLM, MSG.UNLOAD_LLM, MSG.LLM_STATUS,
   MSG.TEST_ENDPOINT, MSG.LIST_DEVICES, MSG.PROBE_CAPABILITIES, MSG.PLAY_SOUND,
 ]);
 
@@ -416,7 +417,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return { ok: true };
       case MSG.MODEL_PROGRESS:
         if (session.tabId != null) sendToTab(session.tabId, { type: MSG.UPDATE_RECORDER, progress: message.progress });
-        send({ target: 'ui', type: MSG.MODEL_PROGRESS, progress: message.progress });
+        send({ target: 'ui', type: MSG.MODEL_PROGRESS, progress: message.progress, kind: message.kind });
         return { ok: true };
       case MSG.STATE_CHANGED:
         setState(message.state);
@@ -458,6 +459,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case MSG.UNLOAD_MODEL:
       case MSG.MODEL_STATUS:
       case MSG.CLEAR_MODEL_CACHE:
+      case MSG.PRELOAD_LLM:
+      case MSG.UNLOAD_LLM:
+      case MSG.LLM_STATUS:
       case MSG.TEST_ENDPOINT:
       case MSG.LIST_DEVICES:
       case MSG.PROBE_CAPABILITIES:
