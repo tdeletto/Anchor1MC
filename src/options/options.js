@@ -557,12 +557,15 @@ async function renderHistoryDiagnostics() {
 
 async function renderHistory() {
   const list = $('#history-list');
+  // Deliberately first and unguarded by the list query: the diagnostics matter
+  // most when that query is the thing failing.
+  renderHistoryDiagnostics();
+
   let entries;
   let totals;
   try {
     entries = await history.listEntries({ limit: 200, query: historyQuery });
     totals = await history.stats();
-    renderHistoryDiagnostics();
   } catch (err) {
     // Without this the section just renders empty, which is indistinguishable
     // from having nothing recorded yet.
