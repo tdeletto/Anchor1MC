@@ -593,7 +593,41 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 // ------------------------------------------------------------ lifecycle -----
 
+/**
+ * Put the content script into tabs that were already open.
+ *
+ * A manifest content script is only injected into pages loaded after the
+ * extension is, so every tab open at install or reload time has none — and
+ * without one the hold-to-talk key does nothing and the recorder never appears,
+ * while the browser-wide shortcut keeps working because it does not need the
+ * page. That asymmetry is confusing enough that it is worth closing rather than
+ * documenting.
+ */
+async function injectIntoOpenTabs() {
+  let injected = 0;
+  try {
+    const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+    await Promise.all(tabs.map(async (tab) => {
+      if (tab.id == null) return;
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id, allFrames: true },
+          files: ['src/content/content.js'],
+        });
+        injected += 1;
+      } catch {
+        // Restricted pages (the Web Store, PDF viewer, other extensions)
+        // refuse injection; nothing can be done for those.
+      }
+    }));
+  } catch (err) {
+    log.warn('could not enumerate tabs for injection', err?.message ?? err);
+  }
+  log.info(`content script injected into ${injected} open tab(s)`);
+}
+
 chrome.runtime.onInstalled.addListener(async (details) => {
+  await injectIntoOpenTabs();
   const settings = await getSettings();
   setLogLevel(settings.advanced.logLevel);
   if (details.reason === 'install' && !settings.onboarded) {
@@ -603,6 +637,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 chrome.runtime.onStartup.addListener(async () => {
   setLogLevel((await getSettings()).advanced.logLevel);
+  await injectIntoOpenTabs();
 });
 
 // A dictation must not outlive the tab it belongs to.

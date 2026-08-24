@@ -201,6 +201,46 @@ function renderModelSelects() {
     : '';
 }
 
+/**
+ * How many open web pages actually have a live content script.
+ *
+ * A manifest content script only reaches pages loaded after the extension, so
+ * tabs open at reload time have none — and the symptom is that the
+ * hold-to-talk key and the recorder do nothing on exactly those tabs while the
+ * browser-wide shortcut still works. Worth being able to see.
+ */
+async function contentScriptCoverage() {
+  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+  const results = await Promise.all(tabs.map(async (tab) => {
+    if (tab.id == null) return false;
+    try {
+      const reply = await chrome.tabs.sendMessage(tab.id, { type: MSG.PING });
+      return reply?.ok === true;
+    } catch {
+      return false;
+    }
+  }));
+  return { live: results.filter(Boolean).length, total: tabs.length };
+}
+
+async function renderContentCoverage() {
+  const line = $('#content-coverage');
+  try {
+    const { live, total } = await contentScriptCoverage();
+    if (!total) {
+      line.textContent = 'No ordinary web pages are open to check.';
+    } else if (live === total) {
+      line.textContent = `Active in all ${total} open web ${total === 1 ? 'page' : 'pages'}.`;
+    } else {
+      line.textContent = `Active in ${live} of ${total} open web pages.`
+        + ' Pages that were already open when the extension last reloaded need activating,'
+        + ' or a page refresh. The browser-wide shortcut works either way.';
+    }
+  } catch (err) {
+    line.textContent = `Could not check open tabs: ${err.message}`;
+  }
+}
+
 /** Which model id each panel is reporting on, given the current settings. */
 function speechModelId() {
   const t = settings.transcription;
@@ -698,6 +738,25 @@ function wireEvents() {
   $('#go-models').addEventListener('click', () => { location.hash = '#models'; });
   $('#go-hotkeys').addEventListener('click', () => { location.hash = '#hotkeys'; });
   $('#open-shortcuts').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
+
+  $('#activate-tabs').addEventListener('click', async () => {
+    const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+    let done = 0;
+    await Promise.all(tabs.map(async (tab) => {
+      if (tab.id == null) return;
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id, allFrames: true },
+          files: ['src/content/content.js'],
+        });
+        done += 1;
+      } catch {
+        // Restricted pages refuse injection; nothing to do for those.
+      }
+    }));
+    toast(`Activated in ${done} of ${tabs.length} pages.`);
+    renderContentCoverage();
+  });
   $('#refresh-mics').addEventListener('click', loadDevices);
 
   $('#test-sound').addEventListener('click', async () => {
@@ -877,6 +936,8 @@ function wireEvents() {
       engine: settings.transcription.engine,
       enhancement: { enabled: settings.enhancement.enabled, provider: settings.enhancement.provider },
       trace: (dictationTrace ?? []).map(({ at, ...rest }) => ({ tMs: at - first, ...rest })),
+      contentScript: await contentScriptCoverage().catch((err) => `error: ${err.message}`),
+      platform: platformName(),
     };
     await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
     toast('Diagnostics copied to the clipboard.');
@@ -929,7 +990,7 @@ function renderAll() {
   const sections = [
     ['controls', () => bindControls()],
     ['languages', () => fillSelect($('#language-select'), LANGUAGES, settings.transcription.language)],
-    ['hotkeys', renderHotkeyLabels],
+    ['hotkeys', () => { renderHotkeyLabels(); renderContentCoverage(); }],
     ['models', renderModelSelects],
     ['panels', () => { renderEnginePanels(); renderProviderPanels(); }],
     ['modes', () => { renderModeSelect(); renderModes(); }],

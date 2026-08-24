@@ -67,6 +67,13 @@ hold-to-talk possible at all. Chrome does not run content scripts on
 those — and when the text cannot be typed into the page, it is copied to the
 clipboard instead, with a notification saying so.
 
+A content script also only reaches pages loaded *after* the extension, so tabs
+already open when it is installed or reloaded start without one: on those, the
+hold-to-talk key and the on-page recorder do nothing while the browser-wide
+shortcut still works. The extension injects itself into open tabs on install
+and on startup to close that gap, and the Hotkeys page reports how many open
+pages it is active in, with a button to activate the rest.
+
 `Ctrl+Shift+Space` would have been the obvious default, but ChromeOS reserves it
 for cycling input methods, so `Alt+Shift+D` is used instead. Every key here is
 remappable: the modifier in the settings page, the combos at

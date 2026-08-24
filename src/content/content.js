@@ -8,7 +8,16 @@
  * rather than imported. They mirror src/lib/messaging.js.
  */
 (() => {
+  // The worker injects this into tabs that were already open when the
+  // extension loaded, which can race with the manifest's own injection on a
+  // tab that reloads at the same moment. Running twice would double every
+  // listener, so the second run stops here. The flag lives in the isolated
+  // world, so a page cannot see or clear it.
+  if (window.__anchor1mcLoaded) return;
+  window.__anchor1mcLoaded = true;
+
   const MSG = {
+    PING: 'ping',
     HOTKEY_DOWN: 'hotkey-down',
     HOTKEY_UP: 'hotkey-up',
     CANCEL: 'cancel',
@@ -447,6 +456,13 @@
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     switch (message?.type) {
+      case MSG.PING:
+        // Lets the settings page report whether a tab can actually be typed
+        // into, which is otherwise invisible until a hotkey silently does
+        // nothing.
+        sendResponse({ ok: true, top: window.top === window, url: location.href });
+        return false;
+
       case MSG.SHOW_RECORDER:
         buildRecorder(message.ui, message.profileName);
         return false;
