@@ -402,13 +402,14 @@
           <div class="control">
             <select data-setting="enhancement.provider">
               <option value="browser">On this device (WebGPU)</option>
-              <option value="hosted">An endpoint you provide</option>
+              <option value="endpoint">A local or self-hosted server</option>
+              <option value="hosted">A hosted endpoint with an API key</option>
             </select>
           </div>
         </div>
       </div>
 
-      <div class="card" data-provider-panel="hosted">
+      <div class="card" data-provider-panel="endpoint hosted">
         <div class="row">
           <div class="info"><label>Endpoint URL</label><div class="desc">Any OpenAI-compatible base URL. <code>/chat/completions</code> is appended.</div></div>
           <div class="control"><input type="url" data-setting="enhancement.endpoint.baseUrl" /></div>
@@ -418,7 +419,7 @@
           <div class="control"><input type="text" data-setting="enhancement.endpoint.model" /></div>
         </div>
         <div class="row">
-          <div class="info"><label>API key</label><div class="desc">Optional; leave empty if the endpoint does not require one.</div></div>
+          <div class="info"><label>API key</label><div class="desc">Optional, and usually unnecessary for a server on your own machine.</div></div>
           <div class="control"><input type="password" data-setting="enhancement.endpoint.apiKey" placeholder="(none)" /></div>
         </div>
         <div class="row">

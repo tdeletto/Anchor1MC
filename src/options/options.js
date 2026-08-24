@@ -86,7 +86,8 @@ function renderDerived() {
   const provider = $('[data-setting="enhancement.provider"]').value;
   $('#provider-desc').textContent = {
     browser: 'Your transcript never leaves this device. Needs WebGPU and a one-off model download.',
-    hosted: 'Your transcript is sent to the endpoint you configure.',
+    endpoint: 'Your transcript is sent to the server you run. No API key needed.',
+    hosted: 'Your transcript is sent to the hosted provider you configure.',
   }[provider] ?? '';
 }
 

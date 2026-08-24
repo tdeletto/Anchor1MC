@@ -74,14 +74,16 @@ Nine modes ship built in — Clean up, Email, Chat message, Notes, AI prompt,
 Formal, Code comment, Summarize, and a Voice assistant mode that answers rather
 than transcribes. All of them are editable, and you can add your own.
 
-Two ways to run it:
+Three ways to run it, only the last of which involves anyone else's server:
 
 - **On this device** (default) — a small instruct model through WebGPU, using
   the same runtime the speech models already load. Qwen2.5 0.5B out of the box,
   which is ample for cleanup and reformatting. Half-precision builds fall back
   to full precision automatically on GPUs without `shader-f16`.
-- **An endpoint you provide** — any OpenAI-compatible `/chat/completions`
-  server, with an optional API key.
+- **A local or self-hosted server** — any OpenAI-compatible
+  `/chat/completions` endpoint you run. No API key needed.
+- **A hosted endpoint** — the same client, with a key field for providers that
+  want one.
 
 Enhancement is off by default: it costs a model download and real latency on
 every dictation, so it should be a deliberate choice.

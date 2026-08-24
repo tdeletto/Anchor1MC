@@ -23,11 +23,8 @@ function migrate(stored) {
   if (!stored || typeof stored !== 'object') return freshDefaults();
   const from = structuredClone(stored);
 
-  // v2 folded the separate self-hosted-server provider into the hosted one;
-  // they were always the same client, differing only in whether a key was set.
-  if ((from.version ?? 1) < 2 && from.enhancement?.provider === 'endpoint') {
-    from.enhancement.provider = 'hosted';
-  }
+  // No field migrations yet. Future ones branch on from.version, which is the
+  // schema the stored object was written against.
 
   const merged = merge(DEFAULTS, from);
   merged.version = SETTINGS_VERSION;

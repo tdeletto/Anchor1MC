@@ -3,7 +3,8 @@
  *
  * Two shapes: an on-device WebGPU model through Transformers.js, which reuses
  * the same ONNX Runtime the speech engines already load, and any
- * OpenAI-compatible endpoint for a hosted model.
+ * OpenAI-compatible server — one you run yourself, or a hosted one with a key.
+ * Both endpoint providers share a client; only the key differs.
  */
 import { logger } from '../lib/log.js';
 import { dtypeCandidates, hasShaderF16 } from '../engines/gpu.js';

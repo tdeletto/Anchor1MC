@@ -185,18 +185,14 @@ await test('quantizations needing no f16 are left alone', () => {
   }
 });
 
-await test('a stored self-hosted provider migrates to the hosted one', async () => {
-  store.settings = { version: 1, enhancement: { provider: 'endpoint', endpoint: { baseUrl: 'http://localhost:11434/v1' } } };
-  const loaded = await settingsModule.getSettings({ force: true });
-  assert.equal(loaded.enhancement.provider, 'hosted', 'the removed option must not strand anyone');
-  assert.equal(loaded.enhancement.endpoint.baseUrl, 'http://localhost:11434/v1', 'their endpoint is preserved');
-  assert.equal(loaded.version, 2);
-});
-
-await test('a current provider value is left untouched by the migration', async () => {
-  store.settings = { version: 2, enhancement: { provider: 'browser' } };
-  const loaded = await settingsModule.getSettings({ force: true });
-  assert.equal(loaded.enhancement.provider, 'browser');
+await test('every provider a user may have stored is preserved', async () => {
+  // All three remain valid choices; loading must never quietly reassign one.
+  for (const provider of ['browser', 'endpoint', 'hosted']) {
+    store.settings = { version: 1, enhancement: { provider, endpoint: { baseUrl: 'http://localhost:9999/v1' } } };
+    const loaded = await settingsModule.getSettings({ force: true });
+    assert.equal(loaded.enhancement.provider, provider, `${provider} must survive a load`);
+    assert.equal(loaded.enhancement.endpoint.baseUrl, 'http://localhost:9999/v1');
+  }
 });
 
 // ------------------------------------------------------------ model urls --

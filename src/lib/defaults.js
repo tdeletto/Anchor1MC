@@ -202,12 +202,14 @@ export const DEFAULTS = {
     /** Off by default: it costs a model download and real latency per
      *  dictation, so it should be a deliberate choice. */
     enabled: false,
-    /** 'browser' = on-device WebGPU model, 'hosted' = an OpenAI-compatible
-     *  endpoint you point it at. */
+    /** 'browser' = on-device WebGPU model, 'endpoint' = a local or self-hosted
+     *  OpenAI-compatible server, 'hosted' = the same client with a key. */
     provider: 'browser',
-    /** Nothing is assumed about the endpoint; it is whatever you configure. */
+    /** Shared by the endpoint and hosted providers; the URL is yours to set.
+     *  The default port is a common one for self-hosted inference servers, and
+     *  is only a starting point. */
     endpoint: {
-      baseUrl: '',
+      baseUrl: 'http://localhost:8000/v1',
       model: '',
       apiKey: '',
     },
