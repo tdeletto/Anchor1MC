@@ -559,6 +559,12 @@ async function renderHistoryDiagnostics() {
           + ` history ${last.enabled === null ? 'unknown' : (last.enabled ? 'on' : 'off')}).`,
       }[last.phase] ?? `Last write reported: ${JSON.stringify(last)}`);
     }
+
+    const { dictationTrace } = await chrome.storage.local.get('dictationTrace');
+    const lastStep = dictationTrace?.at(-1);
+    if (lastStep) {
+      parts.push(`Last step: ${lastStep.event}${lastStep.detail ? ` (${JSON.stringify(lastStep.detail)})` : ''}.`);
+    }
     line.textContent = parts.join(' ');
   } catch (err) {
     line.textContent = `Could not read the database: ${err.message}`;
@@ -843,7 +849,10 @@ function wireEvents() {
 
   $('#copy-diagnostics').addEventListener('click', async () => {
     // One click to hand over everything needed to diagnose a missing entry.
-    const { lastHistoryWrite } = await chrome.storage.local.get('lastHistoryWrite');
+    const { lastHistoryWrite, dictationTrace } = await chrome.storage.local.get(['lastHistoryWrite', 'dictationTrace']);
+    // Relative timestamps: what matters is the order and the gaps, and absolute
+    // epoch numbers make that harder to read, not easier.
+    const first = dictationTrace?.[0]?.at ?? 0;
     const report = {
       version: chrome.runtime.getManifest().version,
       historySettings: settings.history,
@@ -851,6 +860,7 @@ function wireEvents() {
       lastHistoryWrite: lastHistoryWrite ?? null,
       engine: settings.transcription.engine,
       enhancement: { enabled: settings.enhancement.enabled, provider: settings.enhancement.provider },
+      trace: (dictationTrace ?? []).map(({ at, ...rest }) => ({ tMs: at - first, ...rest })),
     };
     await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
     toast('Diagnostics copied to the clipboard.');

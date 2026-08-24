@@ -180,19 +180,23 @@ async function activeTab() {
  * @param {number=} o.tabId  tab that owns this dictation; defaults to the active one
  */
 async function startRecording({ tabId = null, frameId = null, source = 'hotkey' } = {}) {
+  await step('start-requested', { source, state: session.state });
   if (session.state !== STATE.IDLE && session.state !== STATE.ERROR) {
-    log.debug('start ignored; already busy', session.state);
+    await step('start-ignored', `already ${session.state}`);
     return;
   }
 
   const base = await getSettings();
-  if (!base.enabled) return;
+  if (!base.enabled) {
+    await step('start-ignored', 'extension disabled');
+    return;
+  }
 
   const tab = tabId != null ? await chrome.tabs.get(tabId).catch(() => null) : await activeTab();
   const url = tab?.url ?? '';
 
   if (isSiteDisabled(base, url)) {
-    log.info('site is on the disabled list; ignoring hotkey');
+    await step('start-ignored', 'site is on the disabled list');
     return;
   }
 
@@ -230,13 +234,18 @@ async function startRecording({ tabId = null, frameId = null, source = 'hotkey' 
 
     await callOffscreen(MSG.START_CAPTURE, { settings });
     setState(STATE.RECORDING);
+    await step('recording');
   } catch (err) {
     await failSession(err);
   }
 }
 
 async function stopRecording({ reason = 'hotkey' } = {}) {
-  if (session.state !== STATE.RECORDING) return;
+  await step('stop-requested', { reason, state: session.state });
+  if (session.state !== STATE.RECORDING) {
+    await step('stop-ignored', `state was ${session.state}, not recording`);
+    return;
+  }
   setState(STATE.TRANSCRIBING);
 
   try {
@@ -244,10 +253,11 @@ async function stopRecording({ reason = 'hotkey' } = {}) {
       context: session.context,
       settings: session.settings,
     });
+    await step('transcribed', { chars: result?.final?.length ?? null, discarded: !!result?.discarded });
     await unmuteTabs();
 
     if (result.discarded) {
-      log.info('recording discarded', result.reason);
+      await step('discarded', result.reason);
       await finishSession();
       return;
     }
@@ -255,13 +265,17 @@ async function stopRecording({ reason = 'hotkey' } = {}) {
     lastResult = { ...result, url: session.url, title: session.title };
     setState(STATE.INSERTING);
     await deliver(result);
+    await step('delivered');
     await record(result).catch(async (err) => {
       log.error('could not write to history', err);
+      await step('record-threw', err?.message ?? String(err));
       await noteHistoryWrite({ phase: 'failed', reason: err?.message ?? String(err) });
     });
+    await step('recorded');
     await finishSession();
     log.info(`done in ${Math.round(result.latencyMs)}ms (${reason})`, { words: result.final.split(/\s+/).length });
   } catch (err) {
+    await step('stop-failed', err?.message ?? String(err));
     await unmuteTabs();
     await failSession(err);
   }
@@ -272,7 +286,7 @@ async function cancelRecording() {
   try { await callOffscreen(MSG.ABORT_CAPTURE); } catch { /* nothing running */ }
   await unmuteTabs();
   await finishSession();
-  log.info('cancelled');
+  await step('cancelled');
 }
 
 async function finishSession() {
@@ -283,6 +297,7 @@ async function finishSession() {
 
 async function failSession(err) {
   log.error(err);
+  await step('failed', err?.message ?? String(err));
   const message = err?.message ?? String(err);
   setState(STATE.ERROR, { error: message });
   if (session.tabId != null) sendToTab(session.tabId, { type: MSG.HIDE_RECORDER, error: message });
@@ -331,6 +346,27 @@ async function deliver(result) {
  * empty history looks identical whether nothing was written or every write
  * threw.
  */
+/**
+ * A persisted breadcrumb trail through one dictation.
+ *
+ * The write outcome told us record() was never reached but not why, and the
+ * worker's console is gone the moment it is terminated. Each step is written to
+ * storage as it happens, so the path a dictation actually took survives and can
+ * be read back from the settings page.
+ */
+const TRACE_LIMIT = 60;
+let trace = [];
+
+async function step(event, detail) {
+  trace = [...trace, { at: Date.now(), event, ...(detail === undefined ? {} : { detail }) }].slice(-TRACE_LIMIT);
+  log.debug('trace', event, detail ?? '');
+  try {
+    await chrome.storage.local.set({ dictationTrace: trace });
+  } catch {
+    // Diagnostics must never be the thing that breaks a dictation.
+  }
+}
+
 let lastAnnouncedHistoryProblem = null;
 
 async function noteHistoryWrite(outcome) {
@@ -360,6 +396,7 @@ async function noteHistoryWrite(outcome) {
  * reporting the whole dictation as failed.
  */
 async function record(result) {
+  await step('record-called');
   const settings = session.settings;
   // Recorded before anything is attempted, so "the write failed" stays
   // distinguishable from "the write was never reached".
