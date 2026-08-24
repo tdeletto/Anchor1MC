@@ -162,10 +162,41 @@ await test('dotted paths read and write', async () => {
 await test('the defaults are the ones we ship on purpose', () => {
   assert.equal(DEFAULTS.transcription.engine, 'whisper', 'Whisper is the default engine');
   assert.equal(DEFAULTS.recording.maxDurationSec, 3000);
-  assert.equal(DEFAULTS.enhancement.enabled, true);
+  assert.equal(DEFAULTS.enhancement.enabled, false, 'enhancement is opt-in');
+  assert.equal(DEFAULTS.enhancement.provider, 'browser', 'on-device by default');
+  assert.equal(DEFAULTS.enhancement.browser.modelId, 'onnx-community/Qwen2.5-0.5B-Instruct');
   assert.equal(DEFAULTS.enhancement.fallbackToRaw, true, 'a dead AI endpoint must not lose the dictation');
   assert.equal(DEFAULTS.hotkeys.modifierKey, 'AltRight');
   assert.equal(DEFAULTS.history.enabled, true);
+});
+
+const { dtypeCandidates } = await load('src/engines/gpu.js');
+
+await test('a half-precision build falls back where shader-f16 is missing', () => {
+  assert.deepEqual(dtypeCandidates('q4f16', false), ['q4'], 'no f16 support: skip straight to q4');
+  assert.deepEqual(dtypeCandidates('q4f16', true), ['q4f16', 'q4'], 'with support, still keep a fallback');
+  assert.deepEqual(dtypeCandidates('fp16', false), ['fp32']);
+});
+
+await test('quantizations needing no f16 are left alone', () => {
+  for (const dtype of ['q4', 'q8', 'fp32']) {
+    assert.deepEqual(dtypeCandidates(dtype, false), [dtype]);
+    assert.deepEqual(dtypeCandidates(dtype, true), [dtype]);
+  }
+});
+
+await test('a stored self-hosted provider migrates to the hosted one', async () => {
+  store.settings = { version: 1, enhancement: { provider: 'endpoint', endpoint: { baseUrl: 'http://localhost:11434/v1' } } };
+  const loaded = await settingsModule.getSettings({ force: true });
+  assert.equal(loaded.enhancement.provider, 'hosted', 'the removed option must not strand anyone');
+  assert.equal(loaded.enhancement.endpoint.baseUrl, 'http://localhost:11434/v1', 'their endpoint is preserved');
+  assert.equal(loaded.version, 2);
+});
+
+await test('a current provider value is left untouched by the migration', async () => {
+  store.settings = { version: 2, enhancement: { provider: 'browser' } };
+  const loaded = await settingsModule.getSettings({ force: true });
+  assert.equal(loaded.enhancement.provider, 'browser');
 });
 
 // ------------------------------------------------------------ model urls --

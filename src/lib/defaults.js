@@ -6,7 +6,7 @@
  * obvious the field carries a comment explaining what it stands in for.
  */
 
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;
 
 /** Enhancement presets. `prompt` is the system prompt sent with the transcript. */
 export const BUILTIN_MODES = [
@@ -199,20 +199,23 @@ export const DEFAULTS = {
   },
 
   enhancement: {
-    // On by default. With no AI server reachable the call fails immediately and
-    // fallbackToRaw inserts the plain transcript, so the cost of leaving it on
-    // is a refused connection to localhost rather than a lost dictation.
-    enabled: true,
-    /** 'endpoint' = your own OpenAI-compatible server, 'browser' = on-device
-     *  WebGPU model, 'hosted' = same as endpoint but with a key attached. */
-    provider: 'endpoint',
+    /** Off by default: it costs a model download and real latency per
+     *  dictation, so it should be a deliberate choice. */
+    enabled: false,
+    /** 'browser' = on-device WebGPU model, 'hosted' = an OpenAI-compatible
+     *  endpoint you point it at. */
+    provider: 'browser',
+    /** Nothing is assumed about the endpoint; it is whatever you configure. */
     endpoint: {
-      baseUrl: 'http://localhost:11434/v1',
-      model: 'qwen3:4b',
+      baseUrl: '',
+      model: '',
       apiKey: '',
     },
     browser: {
-      modelId: 'onnx-community/Qwen2.5-1.5B-Instruct',
+      // 0.5B by default: cleanup and reformatting sit well within its ability,
+      // and it leaves room alongside the speech model on modest hardware.
+      modelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
+      // Falls back to q4 automatically where the GPU has no shader-f16.
       dtype: 'q4f16',
       device: 'webgpu',
       maxNewTokens: 512,

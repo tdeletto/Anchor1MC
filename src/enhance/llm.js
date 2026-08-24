@@ -1,11 +1,12 @@
 /**
  * Chat-completions clients for the enhancement layer.
  *
- * Two shapes: any OpenAI-compatible server (Ollama, LM Studio, llama.cpp,
- * vLLM — key optional), and an on-device WebGPU model through Transformers.js,
- * which reuses the same ONNX Runtime the speech engines already load.
+ * Two shapes: an on-device WebGPU model through Transformers.js, which reuses
+ * the same ONNX Runtime the speech engines already load, and any
+ * OpenAI-compatible endpoint for a hosted model.
  */
 import { logger } from '../lib/log.js';
+import { dtypeCandidates, hasShaderF16 } from '../engines/gpu.js';
 
 const log = logger('llm');
 const trimSlash = (s) => (s ?? '').replace(/\/+$/, '');
@@ -58,16 +59,34 @@ export async function chatViaBrowser({ modelId, dtype = 'q4f16', device = 'webgp
   const key = `${modelId}:${dtype}:${device}`;
   if (!browserPipe || browserKey !== key) {
     try { await browserPipe?.dispose?.(); } catch { /* nothing loaded */ }
-    onProgress?.({ phase: 'downloading', message: `Downloading ${modelId}…` });
-    browserPipe = await pipeline('text-generation', modelId, {
-      dtype,
-      device,
-      progress_callback: (p) => {
-        if (p.status === 'progress') onProgress?.({ phase: 'downloading', message: `Downloading ${p.file ?? modelId}…`, file: p.file, loaded: p.loaded, total: p.total });
-      },
-    });
+
+    // A half-precision build fails to load outright on a GPU without
+    // shader-f16, so drop to the equivalent full-precision build rather than
+    // letting the user hit an unexplained error.
+    const candidates = dtypeCandidates(dtype, await hasShaderF16());
+    let lastError = null;
+    for (const candidate of candidates) {
+      try {
+        onProgress?.({ phase: 'downloading', message: `Downloading ${modelId}…` });
+        browserPipe = await pipeline('text-generation', modelId, {
+          dtype: candidate,
+          device,
+          progress_callback: (p) => {
+            if (p.status === 'progress') onProgress?.({ phase: 'downloading', message: `Downloading ${p.file ?? modelId}…`, file: p.file, loaded: p.loaded, total: p.total });
+          },
+        });
+        if (candidate !== dtype) log.warn(`${dtype} unavailable on this GPU; loaded ${candidate} instead`);
+        log.info(`on-device LLM ready: ${modelId}:${candidate}:${device}`);
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+        browserPipe = null;
+        log.warn(`could not load ${modelId} as ${candidate}: ${err?.message ?? err}`);
+      }
+    }
+    if (!browserPipe) throw new Error(`Could not load ${modelId} on this device: ${lastError?.message ?? lastError}`);
     browserKey = key;
-    log.info(`on-device LLM ready: ${key}`);
   }
 
   const out = await browserPipe(messages, {

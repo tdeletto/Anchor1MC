@@ -401,25 +401,24 @@
           <div class="info"><label>Where the model runs</label><div class="desc" id="provider-desc"></div></div>
           <div class="control">
             <select data-setting="enhancement.provider">
-              <option value="endpoint">My own server (Ollama, LM Studio, llama.cpp…)</option>
               <option value="browser">On this device (WebGPU)</option>
-              <option value="hosted">Hosted endpoint with an API key</option>
+              <option value="hosted">An endpoint you provide</option>
             </select>
           </div>
         </div>
       </div>
 
-      <div class="card" data-provider-panel="endpoint hosted">
+      <div class="card" data-provider-panel="hosted">
         <div class="row">
-          <div class="info"><label>Endpoint URL</label><div class="desc"><code>/chat/completions</code> is appended. Ollama serves this at <code>http://localhost:11434/v1</code>.</div></div>
+          <div class="info"><label>Endpoint URL</label><div class="desc">Any OpenAI-compatible base URL. <code>/chat/completions</code> is appended.</div></div>
           <div class="control"><input type="url" data-setting="enhancement.endpoint.baseUrl" /></div>
         </div>
         <div class="row">
-          <div class="info"><label>Model name</label><div class="desc">For example <code>qwen3:4b</code> or <code>llama3.2</code>.</div></div>
+          <div class="info"><label>Model name</label><div class="desc">Whatever the endpoint calls the model.</div></div>
           <div class="control"><input type="text" data-setting="enhancement.endpoint.model" /></div>
         </div>
         <div class="row">
-          <div class="info"><label>API key</label><div class="desc">Optional, and never needed for a local server.</div></div>
+          <div class="info"><label>API key</label><div class="desc">Optional; leave empty if the endpoint does not require one.</div></div>
           <div class="control"><input type="password" data-setting="enhancement.endpoint.apiKey" placeholder="(none)" /></div>
         </div>
         <div class="row">
@@ -430,7 +429,7 @@
 
       <div class="card" data-provider-panel="browser">
         <div class="row">
-          <div class="info"><label>On-device model</label><div class="desc" id="llm-note">Runs through the same WebGPU runtime as the speech models. First use downloads it.</div></div>
+          <div class="info"><label>On-device model</label><div class="desc" id="llm-note">Runs through the same WebGPU runtime as the speech models. First use downloads it, and it stays on this device.</div></div>
           <div class="control"><select data-setting="enhancement.browser.modelId" id="browser-llm"></select></div>
         </div>
         <div class="row">

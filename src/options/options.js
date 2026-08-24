@@ -85,9 +85,8 @@ function renderDerived() {
 
   const provider = $('[data-setting="enhancement.provider"]').value;
   $('#provider-desc').textContent = {
-    endpoint: 'Your transcript is sent to your own server. No API key needed.',
-    browser: 'Your transcript never leaves this device. Needs WebGPU and a large download.',
-    hosted: 'Your transcript is sent to the hosted provider you configure.',
+    browser: 'Your transcript never leaves this device. Needs WebGPU and a one-off model download.',
+    hosted: 'Your transcript is sent to the endpoint you configure.',
   }[provider] ?? '';
 }
 
@@ -659,6 +658,10 @@ function wireEvents() {
     $('#asr-test-result').textContent = result?.message ?? 'No answer';
   });
   $('#test-llm').addEventListener('click', async () => {
+    if (!settings.enhancement.endpoint.baseUrl.trim()) {
+      $('#llm-test-result').textContent = 'Enter an endpoint URL first.';
+      return;
+    }
     $('#llm-test-result').textContent = 'Testing…';
     const result = await ask(MSG.TEST_ENDPOINT, { kind: 'chat', config: settings.enhancement.endpoint });
     $('#llm-test-result').textContent = result?.message ?? 'No answer';

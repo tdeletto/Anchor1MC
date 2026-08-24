@@ -21,8 +21,15 @@ function merge(base, override) {
 
 function migrate(stored) {
   if (!stored || typeof stored !== 'object') return freshDefaults();
-  // Only one schema version so far; future migrations branch on stored.version.
-  const merged = merge(DEFAULTS, stored);
+  const from = structuredClone(stored);
+
+  // v2 folded the separate self-hosted-server provider into the hosted one;
+  // they were always the same client, differing only in whether a key was set.
+  if ((from.version ?? 1) < 2 && from.enhancement?.provider === 'endpoint') {
+    from.enhancement.provider = 'hosted';
+  }
+
+  const merged = merge(DEFAULTS, from);
   merged.version = SETTINGS_VERSION;
   return merged;
 }

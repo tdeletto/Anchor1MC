@@ -4,7 +4,7 @@
  */
 import { env, pipeline } from '../../vendor/transformers/transformers.web.min.js';
 import { logger } from '../lib/log.js';
-import { hasWebGpu } from './gpu.js';
+import { hasWebGpu, hasShaderF16, dtypeCandidates } from './gpu.js';
 
 const log = logger('whisper');
 let envReady = false;
@@ -41,18 +41,34 @@ export class WhisperEngine {
     const { modelId, dtype = 'q8', device = 'auto' } = this.config;
     const resolved = device === 'auto' ? (await hasWebGpu() ? 'webgpu' : 'wasm') : device;
 
-    onProgress?.({ phase: 'downloading', message: `Downloading ${modelId}…` });
-    this.pipe = await pipeline('automatic-speech-recognition', modelId, {
-      dtype,
-      device: resolved,
-      progress_callback: (p) => {
-        if (p.status === 'progress') {
-          onProgress?.({ phase: 'downloading', message: `Downloading ${p.file ?? modelId}…`, file: p.file, loaded: p.loaded, total: p.total });
-        } else if (p.status === 'ready') {
-          onProgress?.({ phase: 'ready', message: 'Ready' });
-        }
-      },
-    });
+    // Half-precision builds need shader-f16, which not every integrated GPU
+    // has; without it the load fails rather than degrading.
+    const candidates = dtypeCandidates(dtype, await hasShaderF16());
+    let lastError = null;
+    for (const candidate of candidates) {
+      try {
+        onProgress?.({ phase: 'downloading', message: `Downloading ${modelId}…` });
+        this.pipe = await pipeline('automatic-speech-recognition', modelId, {
+          dtype: candidate,
+          device: resolved,
+          progress_callback: (p) => {
+            if (p.status === 'progress') {
+              onProgress?.({ phase: 'downloading', message: `Downloading ${p.file ?? modelId}…`, file: p.file, loaded: p.loaded, total: p.total });
+            } else if (p.status === 'ready') {
+              onProgress?.({ phase: 'ready', message: 'Ready' });
+            }
+          },
+        });
+        if (candidate !== dtype) log.warn(`${dtype} unavailable on this GPU; loaded ${candidate} instead`);
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+        this.pipe = null;
+        log.warn(`could not load ${modelId} as ${candidate}: ${err?.message ?? err}`);
+      }
+    }
+    if (!this.pipe) throw new Error(`Could not load ${modelId} on this device: ${lastError?.message ?? lastError}`);
     this.provider = resolved;
     this.loaded = true;
     log.info(`loaded ${modelId} (${dtype}) on ${resolved}`);

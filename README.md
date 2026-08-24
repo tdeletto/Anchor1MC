@@ -74,14 +74,17 @@ Nine modes ship built in — Clean up, Email, Chat message, Notes, AI prompt,
 Formal, Code comment, Summarize, and a Voice assistant mode that answers rather
 than transcribes. All of them are editable, and you can add your own.
 
-Three ways to run it, none of which require an API key:
+Two ways to run it:
 
-- **Your own server** — Ollama, LM Studio, llama.cpp, vLLM. Point it at
-  `http://localhost:11434/v1` and name the model.
-- **On this device** — a small instruct model through WebGPU, using the same
-  runtime the speech models already load.
-- **Hosted endpoint** — the same OpenAI-compatible client, with a key field if
-  your provider wants one.
+- **On this device** (default) — a small instruct model through WebGPU, using
+  the same runtime the speech models already load. Qwen2.5 0.5B out of the box,
+  which is ample for cleanup and reformatting. Half-precision builds fall back
+  to full precision automatically on GPUs without `shader-f16`.
+- **An endpoint you provide** — any OpenAI-compatible `/chat/completions`
+  server, with an optional API key.
+
+Enhancement is off by default: it costs a model download and real latency on
+every dictation, so it should be a deliberate choice.
 
 Modes that ask for context receive the page URL, title, the field's label, and
 your selection. Page text is off by default. That context comes from a web page,
