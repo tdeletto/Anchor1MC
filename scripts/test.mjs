@@ -155,36 +155,66 @@ await test('dotted paths read and write', async () => {
 
 // -------------------------------------------------------------------- keys --
 
-const { keyLabel, modifierOptions, commandLabel, MODIFIER_KEYS } = await load('src/lib/keys.js');
+const { keyLabel, modifierOptions, commandLabel, modifierNote, isCapturedByOs, detectPlatform, MODIFIER_KEYS } = await load('src/lib/keys.js');
 
-await test('the same physical key is named for the platform it is on', () => {
-  // event.code is physical, so AltRight is the key right of the space bar on
-  // both machines; only what it is engraved with differs.
-  assert.equal(keyLabel('AltRight', true), 'Right Option (⌥)');
-  assert.equal(keyLabel('AltRight', false), 'Right Alt');
-  assert.equal(keyLabel('MetaLeft', true), 'Left Command (⌘)');
-  assert.equal(keyLabel('MetaLeft', false), 'Left Search key');
+const PLATFORMS = ['mac', 'chromeos', 'windows', 'linux'];
+
+await test('a Chromebook is told apart from the Linux it reports itself as', () => {
+  // The decisive case: navigator.platform says Linux on ChromeOS, so without
+  // the userAgent check the two are indistinguishable.
+  assert.equal(detectPlatform({ userAgent: 'Mozilla/5.0 (X11; CrOS aarch64 14541.0.0)', platform: 'Linux aarch64' }), 'chromeos');
+  assert.equal(detectPlatform({ userAgentData: { platform: 'Chrome OS' } }), 'chromeos');
+  assert.equal(detectPlatform({ userAgentData: { platform: 'macOS' } }), 'mac');
+  assert.equal(detectPlatform({ platform: 'MacIntel' }), 'mac');
+  assert.equal(detectPlatform({ userAgentData: { platform: 'Windows' } }), 'windows');
+  assert.equal(detectPlatform({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64)', platform: 'Linux x86_64' }), 'linux');
+  assert.equal(detectPlatform({}), 'unknown');
 });
 
-await test('every offered modifier is named on both platforms', () => {
-  for (const [mac, label] of [[true, 'mac'], [false, 'other']]) {
-    for (const [code] of modifierOptions(mac)) {
-      const named = keyLabel(code, mac);
-      assert.ok(named && named !== code, `${code} has no ${label} label`);
+await test('the same physical key is named for the keyboard it is on', () => {
+  // event.code is physical, so AltRight is the key right of the space bar
+  // everywhere; only what it is engraved with differs.
+  assert.equal(keyLabel('AltRight', 'mac'), 'Right Option (⌥)');
+  assert.equal(keyLabel('AltRight', 'chromeos'), 'Right Alt');
+  assert.equal(keyLabel('MetaLeft', 'mac'), 'Left Command (⌘)');
+  assert.equal(keyLabel('MetaLeft', 'chromeos'), 'Search / Launcher key');
+  assert.equal(keyLabel('MetaLeft', 'windows'), 'Windows key');
+  assert.equal(keyLabel('MetaLeft', 'linux'), 'Super key');
+});
+
+await test('every offered modifier is named on every platform', () => {
+  for (const platform of PLATFORMS) {
+    for (const [code] of modifierOptions(platform)) {
+      const named = keyLabel(code, platform);
+      assert.ok(named && named !== code, `${code} has no label on ${platform}`);
     }
+    assert.equal(modifierOptions(platform).length, MODIFIER_KEYS.length);
   }
-  assert.equal(modifierOptions(true).length, MODIFIER_KEYS.length);
+});
+
+await test('keys the window manager swallows are flagged, not hidden', () => {
+  // Command is a genuine choice on a Mac; the same physical key is claimed by
+  // the OS everywhere else, and saying so beats silently never firing.
+  assert.equal(isCapturedByOs('MetaLeft', 'mac'), false);
+  for (const platform of ['chromeos', 'windows', 'linux']) {
+    assert.equal(isCapturedByOs('MetaLeft', platform), true, `MetaLeft should be flagged on ${platform}`);
+    const [, label] = modifierOptions(platform).find(([code]) => code === 'MetaLeft');
+    assert.match(label, /captured by the system/);
+    assert.match(modifierNote('MetaLeft', platform), /claims this key/);
+  }
+  assert.equal(isCapturedByOs('AltRight', 'chromeos'), false, 'the default must never be flagged');
+  assert.equal(modifierNote('AltRight', 'chromeos'), 'Held down while you speak.');
 });
 
 await test('Command is offered, since it could never fire before', () => {
-  const codes = modifierOptions(true).map(([code]) => code);
+  const codes = modifierOptions('mac').map(([code]) => code);
   assert.ok(codes.includes('MetaLeft') && codes.includes('MetaRight'));
 });
 
 await test('command shortcuts render in Mac notation', () => {
-  assert.equal(commandLabel('Alt+Shift+D', true), '⌥⇧D');
-  assert.equal(commandLabel('Alt+Shift+D', false), 'Alt+Shift+D');
-  assert.equal(commandLabel('', true), 'unassigned');
+  assert.equal(commandLabel('Alt+Shift+D', 'mac'), '⌥⇧D');
+  assert.equal(commandLabel('Alt+Shift+D', 'chromeos'), 'Alt+Shift+D');
+  assert.equal(commandLabel('', 'mac'), 'unassigned');
 });
 
 // ---------------------------------------------------------------- defaults --

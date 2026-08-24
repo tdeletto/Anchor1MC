@@ -4,7 +4,7 @@ import { BUILTIN_MODES } from '../lib/defaults.js';
 import { MSG } from '../lib/messaging.js';
 import { MODEL_CATALOG, formatBytes, bytesForModel } from '../lib/models.js';
 import { makeProfile } from '../lib/power-mode.js';
-import { modifierOptions, keyLabel, commandLabel, isMac } from '../lib/keys.js';
+import { modifierOptions, keyLabel, commandLabel, modifierNote, platformName } from '../lib/keys.js';
 import * as history from '../lib/history.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -175,7 +175,7 @@ async function renderCapabilities() {
       caps.memoryGb ? `${caps.memoryGb} GB RAM (as reported)` : null,
       caps.threads ? 'multi-threaded WASM' : 'single-threaded WASM',
     ].filter(Boolean);
-    line.textContent = bits.join(' · ');
+    line.textContent = [platformName(), ...bits].join(' · ');
     if (!caps.webgpu) {
       line.textContent += '. Parakeet will be slow here; Whisper base is a better fit.';
     }
@@ -950,12 +950,10 @@ function renderAll() {
 }
 
 function renderHotkeyLabels() {
-  fillSelect($must('#modifier-key'), modifierOptions(), settings.hotkeys.modifierKey);
-  const meta = settings.hotkeys.modifierKey.startsWith('Meta');
-  $must('#welcome-hotkey').textContent = keyLabel(settings.hotkeys.modifierKey);
-  $must('#modifier-key-note').textContent = meta && !isMac
-    ? 'Held down while you speak. ChromeOS claims the Search key for itself, so this one may not reach the extension.'
-    : 'Held down while you speak.';
+  const code = settings.hotkeys.modifierKey;
+  fillSelect($must('#modifier-key'), modifierOptions(), code);
+  $must('#welcome-hotkey').textContent = keyLabel(code);
+  $must('#modifier-key-note').textContent = modifierNote(code);
 }
 
 async function init() {

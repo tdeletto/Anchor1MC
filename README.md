@@ -51,9 +51,15 @@ right of the space bar is `AltRight` whether it is engraved Alt or Option — no
 per-platform configuration, and a profile synced between the two machines
 behaves identically. The settings page names whichever keyboard you are on.
 
-Command (⌘) and Control (⌃) can be chosen instead. On a Chromebook the same
-physical keys are the Search/Launcher key and Ctrl; ChromeOS keeps the Search
-key for itself, so it is offered but not recommended there.
+Command (⌘) and Control (⌃) can be chosen instead. The settings page detects
+which platform it is running on — telling a Chromebook apart from the Linux it
+reports itself as — and names every key accordingly: Command on a Mac is the
+Search key on a Chromebook, the Windows key on Windows, and Super on Linux.
+
+Keys the window manager takes before a page sees them are labelled *usually
+captured by the system* rather than hidden, since a remapped or external
+keyboard may still deliver them. That is Meta everywhere except macOS, where
+Command is a perfectly good choice.
 
 The bare-modifier hotkey is detected by a content script, which is what makes
 hold-to-talk possible at all. Chrome does not run content scripts on
