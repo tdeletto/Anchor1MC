@@ -89,13 +89,21 @@
     return event.code === key;
   }
 
-  /** A modifier press only counts when no other modifier is held with it. */
+  /**
+   * A modifier press only counts when no *other* modifier is held with it.
+   *
+   * Each check ignores the family the pressed key itself belongs to, since
+   * pressing Alt naturally sets altKey. Meta was previously checked
+   * unconditionally, which meant Command could never be the hotkey on a Mac:
+   * pressing it set metaKey and immediately disqualified itself.
+   */
   function isCleanModifierPress(event) {
+    const code = event.code ?? '';
     const others = [
-      event.code !== 'AltLeft' && event.code !== 'AltRight' && event.altKey,
-      event.code !== 'ControlLeft' && event.code !== 'ControlRight' && event.ctrlKey,
-      event.code !== 'ShiftLeft' && event.code !== 'ShiftRight' && event.shiftKey,
-      event.metaKey,
+      !code.startsWith('Alt') && event.altKey,
+      !code.startsWith('Control') && event.ctrlKey,
+      !code.startsWith('Shift') && event.shiftKey,
+      !code.startsWith('Meta') && event.metaKey,
     ];
     return !others.some(Boolean);
   }

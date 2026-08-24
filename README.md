@@ -1,9 +1,10 @@
 # Anchor1MC
 
-AI-assisted voice typing for Chromebooks, as a Chrome extension.
+AI-assisted voice typing as a Chrome extension. Runs on Chromebooks and Macs
+— anywhere desktop Chrome runs.
 
 Hold **Right Alt**, talk, let go. The text appears in whatever field you were
-using. Transcription runs on your Chromebook by default — Whisper out of the
+using. Transcription runs on your own machine by default — Whisper out of the
 box, Parakeet TDT 0.6B v3 if you want it — through ONNX Runtime Web with
 WebGPU. Nothing is uploaded, and no API key is required anywhere in the
 product.
@@ -18,7 +19,7 @@ product.
 The extension loads unpacked, with no build step — the ONNX Runtime and
 Transformers.js files are vendored in `vendor/`.
 
-1. Clone this repository onto the Chromebook.
+1. Clone this repository onto the machine.
 2. Open `chrome://extensions`, turn on **Developer mode**.
 3. **Load unpacked**, and choose the repository folder.
 4. The settings page opens. Do the three steps it lists — grant the microphone,
@@ -34,15 +35,25 @@ on an extension page first; after that, recording is silent and instant.
 
 ## Using it
 
-| Action | Key |
-| --- | --- |
-| Push to talk | Hold **Right Alt** |
-| Hands-free toggle | Double-tap **Right Alt** |
-| Cancel the recording | **Esc** |
-| Start/stop anywhere in Chrome | **Alt+Shift+D** |
-| Cancel | **Alt+Shift+X** |
-| Re-insert the last dictation | **Alt+Shift+R** |
-| Toggle AI enhancement | **Alt+Shift+E** |
+| Action | Chromebook | Mac |
+| --- | --- | --- |
+| Push to talk | Hold **Right Alt** | Hold **Right Option ⌥** |
+| Hands-free toggle | Double-tap the same key | Double-tap the same key |
+| Cancel the recording | **Esc** | **Esc** |
+| Start/stop anywhere in Chrome | **Alt+Shift+D** | **⌥⇧D** |
+| Cancel | **Alt+Shift+X** | **⌥⇧X** |
+| Re-insert the last dictation | **Alt+Shift+R** | **⌥⇧R** |
+| Toggle AI enhancement | **Alt+Shift+E** | **⌥⇧E** |
+
+The two columns are the same physical keys. The hotkey is matched on
+`event.code`, which describes position rather than meaning, so the key to the
+right of the space bar is `AltRight` whether it is engraved Alt or Option — no
+per-platform configuration, and a profile synced between the two machines
+behaves identically. The settings page names whichever keyboard you are on.
+
+Command (⌘) and Control (⌃) can be chosen instead. On a Chromebook the same
+physical keys are the Search/Launcher key and Ctrl; ChromeOS keeps the Search
+key for itself, so it is offered but not recommended there.
 
 The bare-modifier hotkey is detected by a content script, which is what makes
 hold-to-talk possible at all. Chrome does not run content scripts on

@@ -1,6 +1,7 @@
 /** Toolbar popup: status, quick toggles, and a manual start/stop. */
 import { getSettings, updateSettings } from '../lib/settings.js';
 import { MSG, STATE } from '../lib/messaging.js';
+import { keyLabel } from '../lib/keys.js';
 
 const $ = (sel) => document.querySelector(sel);
 const ask = (type, payload = {}) => chrome.runtime.sendMessage({ type, ...payload });
@@ -38,12 +39,7 @@ function renderSettings() {
     return option;
   }));
 
-  const key = settings.hotkeys.modifierKey;
-  $('#hotkey-hint').textContent = {
-    AltRight: 'Right Alt', AltLeft: 'Left Alt',
-    ControlRight: 'Right Ctrl', ControlLeft: 'Left Ctrl',
-    ShiftRight: 'Right Shift', none: 'Hotkey off',
-  }[key] ?? key;
+  $('#hotkey-hint').textContent = keyLabel(settings.hotkeys.modifierKey);
 }
 
 function renderLast(last) {

@@ -153,6 +153,40 @@ await test('dotted paths read and write', async () => {
   assert.equal(settingsModule.getPath(s, 'transcription.parakeet.device'), 'webgpu');
 });
 
+// -------------------------------------------------------------------- keys --
+
+const { keyLabel, modifierOptions, commandLabel, MODIFIER_KEYS } = await load('src/lib/keys.js');
+
+await test('the same physical key is named for the platform it is on', () => {
+  // event.code is physical, so AltRight is the key right of the space bar on
+  // both machines; only what it is engraved with differs.
+  assert.equal(keyLabel('AltRight', true), 'Right Option (⌥)');
+  assert.equal(keyLabel('AltRight', false), 'Right Alt');
+  assert.equal(keyLabel('MetaLeft', true), 'Left Command (⌘)');
+  assert.equal(keyLabel('MetaLeft', false), 'Left Search key');
+});
+
+await test('every offered modifier is named on both platforms', () => {
+  for (const [mac, label] of [[true, 'mac'], [false, 'other']]) {
+    for (const [code] of modifierOptions(mac)) {
+      const named = keyLabel(code, mac);
+      assert.ok(named && named !== code, `${code} has no ${label} label`);
+    }
+  }
+  assert.equal(modifierOptions(true).length, MODIFIER_KEYS.length);
+});
+
+await test('Command is offered, since it could never fire before', () => {
+  const codes = modifierOptions(true).map(([code]) => code);
+  assert.ok(codes.includes('MetaLeft') && codes.includes('MetaRight'));
+});
+
+await test('command shortcuts render in Mac notation', () => {
+  assert.equal(commandLabel('Alt+Shift+D', true), '⌥⇧D');
+  assert.equal(commandLabel('Alt+Shift+D', false), 'Alt+Shift+D');
+  assert.equal(commandLabel('', true), 'unassigned');
+});
+
 // ---------------------------------------------------------------- defaults --
 
 await test('the defaults are the ones we ship on purpose', () => {

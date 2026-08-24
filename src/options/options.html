@@ -50,7 +50,7 @@
       <div class="banner">
         <h3>3. Learn the hotkey</h3>
         <p>
-          Hold <span class="kbd">Right Alt</span> and talk; let go and the text appears. Double-tap it to keep recording hands-free.
+          Hold <span class="kbd" id="welcome-hotkey">Right Alt</span> and talk; let go and the text appears. Double-tap it to keep recording hands-free.
           On pages where extensions cannot run — <code>chrome://</code>, the Web Store, the PDF viewer — use <span class="kbd" id="command-hint">Alt+Shift+D</span> instead.
         </p>
         <button id="go-hotkeys">Change hotkeys</button>
@@ -355,14 +355,7 @@
         <div class="row">
           <div class="info"><label>Push-to-talk key</label><div class="desc">Held down while you speak.</div></div>
           <div class="control">
-            <select data-setting="hotkeys.modifierKey">
-              <option value="AltRight">Right Alt</option>
-              <option value="ControlRight">Right Ctrl</option>
-              <option value="ShiftRight">Right Shift</option>
-              <option value="AltLeft">Left Alt</option>
-              <option value="ControlLeft">Left Ctrl</option>
-              <option value="none">Disabled</option>
-            </select>
+            <select data-setting="hotkeys.modifierKey" id="modifier-key"></select>
           </div>
         </div>
         <div class="row">

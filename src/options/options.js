@@ -4,6 +4,7 @@ import { BUILTIN_MODES } from '../lib/defaults.js';
 import { MSG } from '../lib/messaging.js';
 import { MODEL_CATALOG, formatBytes, bytesForModel } from '../lib/models.js';
 import { makeProfile } from '../lib/power-mode.js';
+import { modifierOptions, keyLabel, commandLabel, isMac } from '../lib/keys.js';
 import * as history from '../lib/history.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -67,6 +68,12 @@ function onSettingsApplied(path) {
   if (path === 'enhancement.provider') renderProviderPanels();
   if (path === 'enhancement.modes' || path === 'enhancement.activeModeId') renderModeSelect();
   // Download sizes and model notes depend on the model and precision picked.
+  if (path === 'hotkeys.modifierKey') {
+    $('#welcome-hotkey').textContent = keyLabel(settings.hotkeys.modifierKey);
+    $('#modifier-key-note').textContent = settings.hotkeys.modifierKey.startsWith('Meta') && !isMac
+      ? 'Held down while you speak. ChromeOS claims the Search key for itself, so this one may not reach the extension.'
+      : 'Held down while you speak.';
+  }
   if (path.startsWith('transcription.') || path.startsWith('enhancement.browser.')) {
     renderModelSelects();
     refreshModelStatus();
@@ -910,6 +917,11 @@ function wireEvents() {
 function renderAll() {
   bindControls();
   fillSelect($('#language-select'), LANGUAGES, settings.transcription.language);
+  fillSelect($('#modifier-key'), modifierOptions(), settings.hotkeys.modifierKey);
+  $('#welcome-hotkey').textContent = keyLabel(settings.hotkeys.modifierKey);
+  $('#modifier-key-note').textContent = settings.hotkeys.modifierKey.startsWith('Meta') && !isMac
+    ? 'Held down while you speak. ChromeOS claims the Search key for itself, so this one may not reach the extension.'
+    : 'Held down while you speak.';
   renderModelSelects();
   renderEnginePanels();
   renderProviderPanels();
@@ -937,7 +949,7 @@ async function init() {
 
   const commands = await chrome.commands.getAll();
   const toggle = commands.find((c) => c.name === 'toggle-recording');
-  if (toggle?.shortcut) $('#command-hint').textContent = toggle.shortcut;
+  if (toggle?.shortcut) $('#command-hint').textContent = commandLabel(toggle.shortcut);
 
   // Mark the first run as done so the welcome tab does not reappear.
   if (!settings.onboarded) await updateSettings((s) => { s.onboarded = true; });
