@@ -27,7 +27,7 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 let settings = null;
 
 const LANGUAGES = [
-  ['auto', 'Auto-detect'], ['en', 'English'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German'],
+  ['auto', 'Auto (English)'], ['en', 'English'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German'],
   ['it', 'Italian'], ['pt', 'Portuguese'], ['nl', 'Dutch'], ['pl', 'Polish'], ['ru', 'Russian'],
   ['uk', 'Ukrainian'], ['cs', 'Czech'], ['sk', 'Slovak'], ['sv', 'Swedish'], ['da', 'Danish'],
   ['fi', 'Finnish'], ['no', 'Norwegian'], ['el', 'Greek'], ['hu', 'Hungarian'], ['ro', 'Romanian'],

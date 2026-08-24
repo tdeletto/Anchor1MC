@@ -22,6 +22,27 @@ function prepareEnv() {
   envReady = true;
 }
 
+/**
+ * The language and task tokens that pin Whisper's decoder.
+ *
+ * Two things this has to work around. Transformers.js has no language
+ * detection for Whisper — with no language token it silently forces English
+ * and warns about it — so 'auto' is resolved to English here, deliberately,
+ * rather than arriving as an accident of someone else's default. And an
+ * English-only export (`.en`) rejects a `language` or a `task` outright, so
+ * neither is sent to one; `transcribe` is what its decoder does anyway.
+ *
+ * Exported so the rules can be tested without loading a model.
+ */
+export function decoderTokens({ language, translate, multilingual = true }) {
+  if (!multilingual) return {};
+  const tokens = { language: language && language !== 'auto' ? language : 'en' };
+  // `task` defaults to transcribe inside the decoder; only translating needs
+  // saying, and saying it unprompted is what breaks the English-only models.
+  if (translate) tokens.task = 'translate';
+  return tokens;
+}
+
 export class WhisperEngine {
   static id = 'whisper';
   static displayName = 'Whisper (on-device)';
@@ -82,7 +103,6 @@ export class WhisperEngine {
     const options = {
       chunk_length_s: this.config.chunkLengthSec ?? 30,
       stride_length_s: this.config.strideLengthSec ?? 5,
-      task: translate ? 'translate' : 'transcribe',
       return_timestamps: false,
       // Whisper decodes greedily and can fall into a loop, emitting one word
       // hundreds of times. A mild penalty discourages it, and blocking a
@@ -92,8 +112,11 @@ export class WhisperEngine {
       repetition_penalty: 1.1,
       no_repeat_ngram_size: 6,
     };
-    // 'auto' means let Whisper detect; anything else pins the decoder.
-    if (language && language !== 'auto') options.language = language;
+    Object.assign(options, decoderTokens({
+      language,
+      translate,
+      multilingual: this.pipe?.model?.generation_config?.is_multilingual !== false,
+    }));
     // Whisper takes a biasing prompt as decoder context where supported.
     if (initialPrompt) options.prompt = initialPrompt;
 

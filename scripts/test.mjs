@@ -42,6 +42,7 @@ const { resolveProfile, applyProfile, profileMatches, isSiteDisabled, makeProfil
 const { SilenceDetector, rms } = await load('src/audio/vad.js');
 const { MelSpectrogram } = await load('src/audio/mel.js');
 const { DEFAULTS } = await load('src/lib/defaults.js');
+const { decoderTokens } = await load('src/engines/whisper.js');
 const settingsModule = await load('src/lib/settings.js');
 
 // ------------------------------------------------------------------ text --
@@ -574,4 +575,24 @@ if (fakeIdb) {
 }
 
 console.log(results.join('\n'));
+// -------------------------------------------------------------- whisper --
+
+await test('auto resolves to a real language token rather than a silent default', () => {
+  assert.deepEqual(decoderTokens({ language: 'auto' }), { language: 'en' });
+  assert.deepEqual(decoderTokens({}), { language: 'en' });
+});
+
+await test('a pinned language is passed through', () => {
+  assert.deepEqual(decoderTokens({ language: 'fr' }), { language: 'fr' });
+});
+
+await test('transcribe is left implicit, translate is not', () => {
+  assert.equal('task' in decoderTokens({ language: 'en' }), false);
+  assert.equal(decoderTokens({ language: 'fr', translate: true }).task, 'translate');
+});
+
+await test('an English-only model is sent neither language nor task', () => {
+  assert.deepEqual(decoderTokens({ language: 'en', translate: true, multilingual: false }), {});
+});
+
 console.log(`\n${passed} passed${process.exitCode ? ', some failed' : ''}`);

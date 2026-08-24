@@ -153,7 +153,8 @@ export const DEFAULTS = {
      *  Whisper by default: a much smaller download than Parakeet, and it runs
      *  through Transformers.js rather than the hand-written TDT decoder here. */
     engine: 'whisper',
-    /** BCP-47 code, or 'auto' to let the model decide. */
+    /** BCP-47 code, or 'auto'. Whisper has no detection in this runtime, so
+     *  'auto' resolves to English there; Web Speech honours it properly. */
     language: 'auto',
     /** Ask the model for English output regardless of spoken language. */
     translateToEnglish: false,
