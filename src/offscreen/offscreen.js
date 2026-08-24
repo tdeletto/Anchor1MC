@@ -9,7 +9,7 @@ import { concat, resampleTo16k, TARGET_RATE } from '../audio/resample.js';
 import { SilenceDetector, rms } from '../audio/vad.js';
 import { chirpWav } from '../audio/chirp.js';
 import { postProcess } from '../lib/text.js';
-import { cacheStats, clearModelCache, formatBytes } from '../lib/models.js';
+import { cacheStats, clearCachedModel, clearModelCache, formatBytes } from '../lib/models.js';
 import * as historyStore from '../lib/history.js';
 
 /**
@@ -397,6 +397,14 @@ const handlers = {
     const { unloadBrowserLlm, browserLlmStatus } = await load.llm();
     await unloadBrowserLlm();
     return browserLlmStatus();
+  },
+  async [MSG.DELETE_LLM]({ modelId }) {
+    // Unload first. A resident pipeline keeps working from memory, so deleting
+    // the files under it would look like the button did nothing at all.
+    const { unloadBrowserLlm, browserLlmStatus } = await load.llm();
+    await unloadBrowserLlm();
+    const removed = await clearCachedModel(modelId);
+    return { removed, ...browserLlmStatus() };
   },
   async [MSG.TEST_ENHANCEMENT]({ settings, sample }) {
     // Runs the real enhancement path on a fixed transcript, so a model can be

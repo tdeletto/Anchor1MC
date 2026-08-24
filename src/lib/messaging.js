@@ -37,6 +37,7 @@ export const MSG = {
   TEST_ENHANCEMENT: 'test-enhancement',
   UNLOAD_MODEL: 'unload-model',
   CLEAR_MODEL_CACHE: 'clear-model-cache',
+  DELETE_LLM: 'delete-llm',
   PLAY_SOUND: 'play-sound',
   COPY_TO_CLIPBOARD: 'copy-to-clipboard',
   PERSIST_HISTORY: 'persist-history',

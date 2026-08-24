@@ -341,7 +341,7 @@ await test('every provider a user may have stored is preserved', async () => {
 
 // ------------------------------------------------------------ model urls --
 
-const { hfApiUrl, hfFileUrl, bytesForModel } = await load('src/lib/models.js');
+const { hfApiUrl, hfFileUrl, bytesForModel, clearCachedModel } = await load('src/lib/models.js');
 
 await test('the Hugging Face API url keeps the owner/name separator', () => {
   // Encoding the whole repo id turns the slash into %2F and the API answers 400.
@@ -593,6 +593,72 @@ await test('transcribe is left implicit, translate is not', () => {
 
 await test('an English-only model is sent neither language nor task', () => {
   assert.deepEqual(decoderTokens({ language: 'en', translate: true, multilingual: false }), {});
+});
+
+// ------------------------------------------------------- model deletion --
+
+/** Cache Storage stand-in: a name -> Set<url> map with the methods we use. */
+function fakeCaches(contents) {
+  const stores = new Map(Object.entries(contents).map(([k, v]) => [k, new Set(v)]));
+  return {
+    open: async (name) => {
+      if (!stores.has(name)) throw new Error('no such cache');
+      const urls = stores.get(name);
+      return {
+        keys: async () => [...urls].map((url) => ({ url })),
+        delete: async (req) => urls.delete(req.url),
+      };
+    },
+    _remaining: () => [...stores.values()].flatMap((s) => [...s]),
+  };
+}
+
+await test('deleting a model takes its files from every cache it lives in', async () => {
+  const fake = fakeCaches({
+    'anchor1mc-models-v1': ['https://hf.co/onnx-community/Qwen3-0.6B-ONNX/onnx/a.onnx'],
+    'transformers-cache': [
+      'https://hf.co/onnx-community/Qwen3-0.6B-ONNX/onnx/b.onnx',
+      'https://hf.co/onnx-community/whisper-base/onnx/c.onnx',
+    ],
+  });
+  globalThis.caches = fake;
+  const removed = await clearCachedModel('onnx-community/Qwen3-0.6B-ONNX');
+  assert.equal(removed, 2);
+  assert.deepEqual(fake._remaining(), ['https://hf.co/onnx-community/whisper-base/onnx/c.onnx']);
+  delete globalThis.caches;
+});
+
+await test('deleting one model leaves a model whose name it prefixes alone', async () => {
+  const fake = fakeCaches({
+    'transformers-cache': [
+      'https://hf.co/onnx-community/whisper-base/onnx/a.onnx',
+      'https://hf.co/onnx-community/whisper-base-extra/onnx/b.onnx',
+    ],
+  });
+  globalThis.caches = fake;
+  assert.equal(await clearCachedModel('onnx-community/whisper-base'), 1);
+  assert.deepEqual(fake._remaining(), ['https://hf.co/onnx-community/whisper-base-extra/onnx/b.onnx']);
+  delete globalThis.caches;
+});
+
+await test('deletion matches exactly what the settings page reports as cached', async () => {
+  const entries = [
+    { url: 'https://hf.co/onnx-community/Qwen3-0.6B-ONNX/onnx/a.onnx', size: 10 },
+    { url: 'https://hf.co/onnx-community/whisper-base/onnx/b.onnx', size: 5 },
+  ];
+  assert.equal(bytesForModel(entries, 'onnx-community/Qwen3-0.6B-ONNX'), 10);
+  const fake = fakeCaches({ 'transformers-cache': entries.map((e) => e.url) });
+  globalThis.caches = fake;
+  assert.equal(await clearCachedModel('onnx-community/Qwen3-0.6B-ONNX'), 1);
+  delete globalThis.caches;
+});
+
+await test('deleting with no model selected is a no-op rather than a purge', async () => {
+  const fake = fakeCaches({ 'transformers-cache': ['https://hf.co/onnx-community/whisper-base/a.onnx'] });
+  globalThis.caches = fake;
+  assert.equal(await clearCachedModel(''), 0);
+  assert.equal(fake._remaining().length, 1);
+  delete globalThis.caches;
 });
 
 console.log(`\n${passed} passed${process.exitCode ? ', some failed' : ''}`);

@@ -240,6 +240,36 @@ export function bytesForModel(entries, modelId) {
     .reduce((total, e) => total + e.size, 0);
 }
 
+/**
+ * Delete every cached file belonging to one model, across both stores.
+ *
+ * Matched exactly the way bytesForModel counts them, so what the settings page
+ * reports as cached for a model is what this removes — and nothing else, which
+ * is the point: clearModelCache takes out every model at once.
+ *
+ * @param {string} modelId e.g. 'onnx-community/Qwen3-0.6B-ONNX'
+ * @returns {Promise<number>} files removed
+ */
+export async function clearCachedModel(modelId) {
+  if (!modelId) return 0;
+  const needle = `/${modelId}/`;
+  let removed = 0;
+  for (const name of [CACHE_NAME, TRANSFORMERS_CACHE]) {
+    let store;
+    try {
+      store = await caches.open(name);
+    } catch {
+      continue; // nothing has been written to this one yet
+    }
+    for (const req of await store.keys()) {
+      if (!req.url.includes(needle)) continue;
+      if (await store.delete(req)) removed += 1;
+    }
+  }
+  log.info(`removed ${removed} cached file(s) for ${modelId}`);
+  return removed;
+}
+
 export async function clearModelCache(urlPrefix = null) {
   const c = await cache();
   const keys = await c.keys();

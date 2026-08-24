@@ -844,6 +844,18 @@ function wireEvents() {
     }
   });
   $('#unload-llm').addEventListener('click', async () => { await ask(MSG.UNLOAD_LLM); refreshModelStatus(); });
+  $('#delete-llm').addEventListener('click', async () => {
+    const modelId = settings.enhancement.browser.modelId;
+    if (!confirm(`Delete the downloaded files for ${modelId}? It will download again the next time enhancement runs.`)) return;
+    try {
+      const result = await ask(MSG.DELETE_LLM, { modelId });
+      if (!result) throw new Error('No answer from the audio worker.');
+      toast(result.removed ? `Deleted ${result.removed} file(s) for ${modelId}.` : `Nothing was cached for ${modelId}.`);
+    } catch (err) {
+      toast(`Could not delete: ${err.message}`);
+    }
+    refreshModelStatus();
+  });
   $('#clear-cache').addEventListener('click', async () => {
     if (!confirm('Delete every cached model? They will download again next time you dictate.')) return;
     await ask(MSG.CLEAR_MODEL_CACHE);
