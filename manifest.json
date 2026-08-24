@@ -1,0 +1,100 @@
+{
+  "manifest_version": 3,
+  "name": "Anchor1MC \u2014 AI Voice Typing",
+  "version": "0.1.0",
+  "description": "Local-first AI voice typing. Hold Right Alt, speak, and the text lands in whatever field you were in. Parakeet V3 and Whisper run on-device.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "offscreen",
+    "scripting",
+    "tabs",
+    "clipboardWrite",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Anchor1MC",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content/content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
+    }
+  ],
+  "commands": {
+    "toggle-recording": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Start / stop voice typing"
+    },
+    "cancel-recording": {
+      "suggested_key": {
+        "default": "Alt+Shift+X"
+      },
+      "description": "Cancel the current recording"
+    },
+    "retry-last": {
+      "suggested_key": {
+        "default": "Alt+Shift+R"
+      },
+      "description": "Re-transcribe the last recording"
+    },
+    "toggle-enhancement": {
+      "suggested_key": {
+        "default": "Alt+Shift+E"
+      },
+      "description": "Toggle AI enhancement on / off"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "cross_origin_embedder_policy": {
+    "value": "require-corp"
+  },
+  "cross_origin_opener_policy": {
+    "value": "same-origin"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
+  "@huggingface/transformers": "4.2.0",
+  "vendoredAt": "2026-08-24T01:50:41.410Z"
+}

@@ -1,0 +1,62 @@
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff; --panel: #f4f4f5; --border: #e4e4e7;
+  --text: #18181b; --muted: #71717a; --accent: #6d5cf6; --danger: #e5484d;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #18181b; --panel: #232327; --border: #2f2f35; --text: #f4f4f5; --muted: #a1a1aa; --accent: #8b7cff; }
+}
+* { box-sizing: border-box; }
+body {
+  width: 288px; margin: 0; padding: 14px;
+  background: var(--bg); color: var(--text);
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+header .title { font-weight: 650; flex: 1; font-size: 14px; }
+.switch input { width: 17px; height: 17px; accent-color: var(--accent); }
+
+.record {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 11px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--accent); color: #fff; font: inherit; font-weight: 600;
+  cursor: pointer;
+}
+.record:hover { filter: brightness(1.07); }
+.record.active { background: var(--danger); }
+.record .dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+.record.active .dot { animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.meter { height: 4px; background: var(--panel); border-radius: 999px; margin: 10px 0 6px; overflow: hidden; }
+.meter > div { height: 100%; width: 0; background: var(--accent); transition: width 80ms linear; }
+.status-line { color: var(--muted); font-size: 12px; min-height: 17px; margin-bottom: 10px; }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.field.row { flex-direction: row; align-items: center; justify-content: space-between; }
+.field label { color: var(--muted); font-size: 11.5px; font-weight: 550; }
+select {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 12.5px; width: 100%;
+}
+input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+.last { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px; }
+.last-label { color: var(--muted); font-size: 11.5px; font-weight: 550; margin-bottom: 4px; }
+.last-text {
+  font-size: 12.5px; max-height: 64px; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  margin-bottom: 6px;
+}
+.last button {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 7px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer;
+}
+
+footer { display: flex; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+footer .spacer { flex: 1; }
+footer a { color: var(--accent); text-decoration: none; font-size: 12.5px; font-weight: 550; }
+.kbd {
+  padding: 2px 6px; border-radius: 5px; border: 1px solid var(--border); border-bottom-width: 2px;
+  background: var(--panel); font-size: 11px; font-family: ui-monospace, monospace; color: var(--muted);
+}

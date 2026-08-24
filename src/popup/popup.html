@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Anchor1MC</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <img src="../../icons/icon-32.png" width="22" height="22" alt="" />
+    <div class="title">Anchor1MC</div>
+    <label class="switch" title="Enable or disable Anchor1MC">
+      <input type="checkbox" id="enabled" />
+    </label>
+  </header>
+
+  <button id="record" class="record">
+    <span class="dot"></span>
+    <span id="record-label">Start dictating</span>
+  </button>
+
+  <div class="meter"><div id="meter-fill"></div></div>
+  <div class="status-line" id="status">Ready</div>
+
+  <div class="field">
+    <label for="engine">Engine</label>
+    <select id="engine">
+      <option value="parakeet">Parakeet V3 — on-device</option>
+      <option value="whisper">Whisper — on-device</option>
+      <option value="remote">Endpoint</option>
+      <option value="webspeech">Chrome — cloud</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="mode">AI mode</label>
+    <select id="mode"></select>
+  </div>
+
+  <div class="field row">
+    <label for="enhance">AI enhancement</label>
+    <input type="checkbox" id="enhance" />
+  </div>
+
+  <div class="last" id="last" hidden>
+    <div class="last-label">Last dictation</div>
+    <div class="last-text" id="last-text"></div>
+    <button id="copy-last">Copy</button>
+  </div>
+
+  <footer>
+    <span class="kbd" id="hotkey-hint">Right Alt</span>
+    <span class="spacer"></span>
+    <a href="#" id="open-options">Settings</a>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

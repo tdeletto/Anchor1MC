@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Anchor1MC — audio worker</title>
+  </head>
+  <body>
+    <!-- Never visible. Chrome keeps this document alive so the microphone,
+         ONNX Runtime, and WebGPU have a DOM to live in, which an MV3 service
+         worker does not provide. -->
+    <script type="module" src="offscreen.js"></script>
+  </body>
+</html>

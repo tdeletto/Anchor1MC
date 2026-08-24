@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Anchor1MC — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+<div class="layout">
+  <nav>
+    <div class="brand">
+      <img src="../../icons/icon-32.png" width="26" height="26" alt="" />
+      <div>
+        <h1>Anchor1MC</h1>
+        <div class="sub">AI voice typing</div>
+      </div>
+    </div>
+    <a href="#welcome">Getting started</a>
+    <a href="#general">General</a>
+    <a href="#models">Models</a>
+    <a href="#recording">Recording</a>
+    <a href="#hotkeys">Hotkeys</a>
+    <a href="#ai">AI enhancement</a>
+    <a href="#modes">Modes</a>
+    <a href="#dictionary">Dictionary</a>
+    <a href="#power">Power Mode</a>
+    <a href="#history">History</a>
+    <a href="#advanced">Advanced</a>
+  </nav>
+
+  <main>
+    <!-- ------------------------------------------------------ welcome -->
+    <section id="welcome">
+      <h2>Getting started</h2>
+      <p class="lede">Three things to set up, then you can dictate anywhere in Chrome.</p>
+
+      <div class="banner" id="mic-banner">
+        <h3>1. Microphone access</h3>
+        <p>Chrome only lets an extension record after you grant the microphone once, from a page like this one.</p>
+        <button id="grant-mic" class="primary">Grant microphone access</button>
+        <span class="status" id="mic-status">Not checked</span>
+      </div>
+
+      <div class="banner">
+        <h3>2. Pick a model</h3>
+        <p>Parakeet V3 runs entirely on your Chromebook and is the most accurate on-device option. It is a large first download; Whisper base is a lighter start.</p>
+        <button id="go-models">Choose a model</button>
+      </div>
+
+      <div class="banner">
+        <h3>3. Learn the hotkey</h3>
+        <p>
+          Hold <span class="kbd">Right Alt</span> and talk; let go and the text appears. Double-tap it to keep recording hands-free.
+          On pages where extensions cannot run — <code>chrome://</code>, the Web Store, the PDF viewer — use <span class="kbd" id="command-hint">Alt+Shift+D</span> instead.
+        </p>
+        <button id="go-hotkeys">Change hotkeys</button>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="info">
+            <label>This device</label>
+            <div class="desc" id="caps-line">Checking hardware…</div>
+          </div>
+          <div class="control"><button id="recheck-caps">Re-check</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------ general -->
+    <section id="general">
+      <h2>General</h2>
+      <p class="lede">Global switches.</p>
+      <div class="card">
+        <div class="row">
+          <div class="info">
+            <label>Enable Anchor1MC</label>
+            <div class="desc">Turn everything off without uninstalling.</div>
+          </div>
+          <div class="control"><input type="checkbox" data-setting="enabled" /></div>
+        </div>
+        <div class="row">
+          <div class="info">
+            <label>Where the text goes</label>
+            <div class="desc">Type it into the focused field, copy it to the clipboard, or both.</div>
+          </div>
+          <div class="control">
+            <select data-setting="output.insertMode">
+              <option value="auto">Type into the field</option>
+              <option value="clipboard">Clipboard only</option>
+              <option value="both">Type and copy</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info">
+            <label>Press Enter after inserting</label>
+            <div class="desc">Sends the message straight away. Power Mode can set this per site.</div>
+          </div>
+          <div class="control"><input type="checkbox" data-setting="output.autoSend" /></div>
+        </div>
+        <div class="row">
+          <div class="info">
+            <label>Add a trailing space</label>
+            <div class="desc">So the next dictation does not run into the last word.</div>
+          </div>
+          <div class="control"><input type="checkbox" data-setting="output.addTrailingSpace" /></div>
+        </div>
+        <div class="row">
+          <div class="info">
+            <label>On-page recorder</label>
+            <div class="desc">The pill that shows the level meter and timer while you talk.</div>
+          </div>
+          <div class="control">
+            <select data-setting="ui.recorderStyle">
+              <option value="mini">Mini pill</option>
+              <option value="notch">Notch (top centre)</option>
+              <option value="none">None — badge only</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Recorder position</label><div class="desc">Ignored for the notch style.</div></div>
+          <div class="control">
+            <select data-setting="ui.position">
+              <option value="bottom-center">Bottom centre</option>
+              <option value="bottom-right">Bottom right</option>
+              <option value="bottom-left">Bottom left</option>
+              <option value="top-center">Top centre</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Show in the recorder</label><div class="desc">Level meter, elapsed time, and live partial text.</div></div>
+          <div class="control">
+            <label class="hint"><input type="checkbox" data-setting="ui.showWaveform" /> Waveform</label>
+            <label class="hint"><input type="checkbox" data-setting="ui.showTimer" /> Timer</label>
+            <label class="hint"><input type="checkbox" data-setting="ui.showPartials" /> Partials</label>
+          </div>
+        </div>
+      </div>
+
+      <h3>Disabled sites</h3>
+      <div class="card">
+        <div class="toolbar">
+          <input type="text" id="disabled-site-input" placeholder="example.com" />
+          <button id="add-disabled-site">Add site</button>
+          <span class="hint">The hotkey is ignored entirely on these domains.</span>
+        </div>
+        <div class="list" id="disabled-sites"></div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------- models -->
+    <section id="models">
+      <h2>Models</h2>
+      <p class="lede">Where transcription happens. The first three keep your audio on this device.</p>
+
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>Transcription engine</label><div class="desc" id="engine-desc"></div></div>
+          <div class="control">
+            <select data-setting="transcription.engine">
+              <option value="parakeet">Parakeet V3 — on-device</option>
+              <option value="whisper">Whisper — on-device</option>
+              <option value="remote">Self-hosted / hosted endpoint</option>
+              <option value="webspeech">Chrome speech recognition — cloud</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Spoken language</label><div class="desc">Auto-detect works well; pinning a language is more accurate.</div></div>
+          <div class="control"><select data-setting="transcription.language" id="language-select"></select></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Translate to English</label><div class="desc">Whisper and compatible endpoints only.</div></div>
+          <div class="control"><input type="checkbox" data-setting="transcription.translateToEnglish" /></div>
+        </div>
+      </div>
+
+      <div class="card" data-engine-panel="parakeet">
+        <div class="row">
+          <div class="info"><label>Parakeet model</label><div class="desc" id="parakeet-note"></div></div>
+          <div class="control"><select data-setting="transcription.parakeet.modelId" id="parakeet-model"></select></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Precision</label><div class="desc">int8 is roughly a quarter the size and download; fp32 is the reference quality.</div></div>
+          <div class="control">
+            <select data-setting="transcription.parakeet.precision">
+              <option value="int8">int8 — quantized</option>
+              <option value="fp32">fp32 — full precision</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Run on</label><div class="desc">WebGPU is far faster when your Chromebook supports it.</div></div>
+          <div class="control">
+            <select data-setting="transcription.parakeet.device">
+              <option value="auto">Auto</option>
+              <option value="webgpu">WebGPU</option>
+              <option value="wasm">CPU (WASM)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" data-engine-panel="whisper">
+        <div class="row">
+          <div class="info"><label>Whisper model</label><div class="desc" id="whisper-note"></div></div>
+          <div class="control"><select data-setting="transcription.whisper.modelId" id="whisper-model"></select></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Quantization</label><div class="desc">Smaller is faster to download and run, at some cost in accuracy.</div></div>
+          <div class="control">
+            <select data-setting="transcription.whisper.dtype">
+              <option value="q4">q4</option>
+              <option value="q8">q8</option>
+              <option value="fp16">fp16</option>
+              <option value="fp32">fp32</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Run on</label><div class="desc"></div></div>
+          <div class="control">
+            <select data-setting="transcription.whisper.device">
+              <option value="auto">Auto</option>
+              <option value="webgpu">WebGPU</option>
+              <option value="wasm">CPU (WASM)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" data-engine-panel="remote">
+        <div class="row">
+          <div class="info"><label>Endpoint URL</label><div class="desc">Any OpenAI-compatible server. <code>/audio/transcriptions</code> is appended.</div></div>
+          <div class="control"><input type="url" data-setting="transcription.remote.baseUrl" placeholder="http://localhost:8000/v1" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Model name</label><div class="desc">Whatever your server calls it.</div></div>
+          <div class="control"><input type="text" data-setting="transcription.remote.model" placeholder="whisper-1" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>API key</label><div class="desc">Optional. Most self-hosted servers ignore it.</div></div>
+          <div class="control"><input type="password" data-setting="transcription.remote.apiKey" placeholder="(none)" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Check the connection</label><div class="desc" id="asr-test-result">Not tested.</div></div>
+          <div class="control"><button id="test-asr">Test endpoint</button></div>
+        </div>
+      </div>
+
+      <div class="card" data-engine-panel="webspeech">
+        <div class="row">
+          <div class="info">
+            <label>Chrome speech recognition</label>
+            <div class="desc">Nothing to download, but Chrome sends your audio to Google. Everything else on this page stays on-device.</div>
+          </div>
+          <div class="control"><label class="hint"><input type="checkbox" data-setting="transcription.webspeech.interim" /> Live partial text</label></div>
+        </div>
+      </div>
+
+      <h3>Downloaded models</h3>
+      <div class="card">
+        <div class="row">
+          <div class="info">
+            <label id="model-state">Nothing loaded</label>
+            <div class="desc" id="cache-line">Checking the model cache…</div>
+            <div class="progress" id="dl-progress" hidden><div></div></div>
+          </div>
+          <div class="control">
+            <button id="preload">Download &amp; load now</button>
+            <button id="unload">Unload</button>
+            <button id="clear-cache" class="danger">Delete cached models</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- recording -->
+    <section id="recording">
+      <h2>Recording</h2>
+      <p class="lede">Microphone, silence detection, and feedback.</p>
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>Microphone</label><div class="desc">Device labels appear once access is granted.</div></div>
+          <div class="control">
+            <select data-setting="recording.deviceId" id="mic-select"><option value="default">System default</option></select>
+            <button id="refresh-mics">Refresh</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Hotkey behaviour</label><div class="desc">Hold to talk, tap to toggle, or both.</div></div>
+          <div class="control">
+            <select data-setting="recording.mode">
+              <option value="both">Hold and toggle</option>
+              <option value="hold">Hold only</option>
+              <option value="toggle">Toggle only</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Stop after silence</label><div class="desc">Ends a hands-free recording once you stop talking.</div></div>
+          <div class="control"><input type="checkbox" data-setting="recording.autoStopEnabled" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Silence before stopping</label><div class="desc"><span id="silence-value"></span></div></div>
+          <div class="control"><input type="range" min="500" max="6000" step="250" data-setting="recording.autoStopSilenceMs" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Maximum length</label><div class="desc">Seconds. A safety net against a stuck key.</div></div>
+          <div class="control"><input type="number" min="10" max="7200" data-setting="recording.maxDurationSec" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Ignore taps shorter than</label><div class="desc">Milliseconds. Stops accidental brushes becoming empty dictations.</div></div>
+          <div class="control"><input type="number" min="0" max="2000" step="50" data-setting="recording.minDurationMs" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Audio processing</label><div class="desc">Chrome's built-in cleanup. Turn off if your mic already handles it.</div></div>
+          <div class="control">
+            <label class="hint"><input type="checkbox" data-setting="recording.echoCancellation" /> Echo</label>
+            <label class="hint"><input type="checkbox" data-setting="recording.noiseSuppression" /> Noise</label>
+            <label class="hint"><input type="checkbox" data-setting="recording.autoGainControl" /> Gain</label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Mute noisy tabs while recording</label><div class="desc">Mutes any tab playing audio, then unmutes it when you finish.</div></div>
+          <div class="control"><input type="checkbox" data-setting="recording.muteOtherTabs" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Start and stop chirps</label><div class="desc">A short tone so you know it is listening.</div></div>
+          <div class="control">
+            <input type="checkbox" data-setting="recording.soundFeedback" />
+            <input type="range" min="0" max="1" step="0.05" data-setting="recording.soundVolume" />
+            <button id="test-sound">Test</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------ hotkeys -->
+    <section id="hotkeys">
+      <h2>Hotkeys</h2>
+      <p class="lede">
+        The bare-modifier hotkey is handled inside web pages, which is what makes hold-to-talk possible at all.
+        Chrome does not let extensions run on <code>chrome://</code> pages, the Web Store, or the PDF viewer, so a normal
+        keyboard shortcut covers those.
+      </p>
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>Push-to-talk key</label><div class="desc">Held down while you speak.</div></div>
+          <div class="control">
+            <select data-setting="hotkeys.modifierKey">
+              <option value="AltRight">Right Alt</option>
+              <option value="ControlRight">Right Ctrl</option>
+              <option value="ShiftRight">Right Shift</option>
+              <option value="AltLeft">Left Alt</option>
+              <option value="ControlLeft">Left Ctrl</option>
+              <option value="none">Disabled</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Double-tap to toggle</label><div class="desc">Tap twice to keep recording without holding the key.</div></div>
+          <div class="control"><input type="checkbox" data-setting="hotkeys.doubleTapToggle" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Double-tap window</label><div class="desc">Milliseconds allowed between the two taps.</div></div>
+          <div class="control"><input type="number" min="150" max="1000" step="50" data-setting="hotkeys.doubleTapWindowMs" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Hold threshold</label><div class="desc">Milliseconds. Held longer than this counts as push-to-talk rather than a tap.</div></div>
+          <div class="control"><input type="number" min="80" max="1000" step="10" data-setting="hotkeys.holdThresholdMs" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Escape cancels</label><div class="desc">Throw away the current recording without transcribing it.</div></div>
+          <div class="control"><input type="checkbox" data-setting="hotkeys.escapeCancels" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Browser-wide shortcuts</label><div class="desc">Start/stop, cancel, retry, and the enhancement toggle. Chrome owns these; change them on its shortcuts page.</div></div>
+          <div class="control"><button id="open-shortcuts">Open Chrome shortcuts</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------- ai -->
+    <section id="ai">
+      <h2>AI enhancement</h2>
+      <p class="lede">An optional second pass that cleans up or reformats the transcript before it is inserted.</p>
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>Enable AI enhancement</label><div class="desc">Adds latency. Toggle it any time with <span class="kbd">Alt+Shift+E</span>.</div></div>
+          <div class="control"><input type="checkbox" data-setting="enhancement.enabled" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Active mode</label><div class="desc">Which prompt runs. Power Mode can switch this per site.</div></div>
+          <div class="control"><select data-setting="enhancement.activeModeId" id="active-mode"></select></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Where the model runs</label><div class="desc" id="provider-desc"></div></div>
+          <div class="control">
+            <select data-setting="enhancement.provider">
+              <option value="endpoint">My own server (Ollama, LM Studio, llama.cpp…)</option>
+              <option value="browser">On this device (WebGPU)</option>
+              <option value="hosted">Hosted endpoint with an API key</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" data-provider-panel="endpoint hosted">
+        <div class="row">
+          <div class="info"><label>Endpoint URL</label><div class="desc"><code>/chat/completions</code> is appended. Ollama serves this at <code>http://localhost:11434/v1</code>.</div></div>
+          <div class="control"><input type="url" data-setting="enhancement.endpoint.baseUrl" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Model name</label><div class="desc">For example <code>qwen3:4b</code> or <code>llama3.2</code>.</div></div>
+          <div class="control"><input type="text" data-setting="enhancement.endpoint.model" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>API key</label><div class="desc">Optional, and never needed for a local server.</div></div>
+          <div class="control"><input type="password" data-setting="enhancement.endpoint.apiKey" placeholder="(none)" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Check the connection</label><div class="desc" id="llm-test-result">Not tested.</div></div>
+          <div class="control"><button id="test-llm">Test endpoint</button></div>
+        </div>
+      </div>
+
+      <div class="card" data-provider-panel="browser">
+        <div class="row">
+          <div class="info"><label>On-device model</label><div class="desc" id="llm-note">Runs through the same WebGPU runtime as the speech models. First use downloads it.</div></div>
+          <div class="control"><select data-setting="enhancement.browser.modelId" id="browser-llm"></select></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Longest reply</label><div class="desc">Tokens. Higher costs time on long dictations.</div></div>
+          <div class="control"><input type="number" min="64" max="4096" step="64" data-setting="enhancement.browser.maxNewTokens" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>What the model may see</label><div class="desc">Context is only sent for modes that ask for it. Page text is off by default.</div></div>
+          <div class="control">
+            <label class="hint"><input type="checkbox" data-setting="enhancement.contextCapture.url" /> URL</label>
+            <label class="hint"><input type="checkbox" data-setting="enhancement.contextCapture.title" /> Title</label>
+            <label class="hint"><input type="checkbox" data-setting="enhancement.contextCapture.fieldLabel" /> Field name</label>
+            <label class="hint"><input type="checkbox" data-setting="enhancement.contextCapture.selection" /> Selection</label>
+            <label class="hint"><input type="checkbox" data-setting="enhancement.contextCapture.pageText" /> Page text</label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Context size limit</label><div class="desc">Characters.</div></div>
+          <div class="control"><input type="number" min="200" max="20000" step="100" data-setting="enhancement.contextCapture.maxChars" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Insert the raw transcript if the AI fails</label><div class="desc">A dead endpoint costs you formatting, not the dictation.</div></div>
+          <div class="control"><input type="checkbox" data-setting="enhancement.fallbackToRaw" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Timeout</label><div class="desc">Milliseconds.</div></div>
+          <div class="control"><input type="number" min="2000" max="180000" step="1000" data-setting="enhancement.timeoutMs" /></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------------------- modes -->
+    <section id="modes">
+      <h2>Modes</h2>
+      <p class="lede">Each mode is a prompt. Edit the built-ins or add your own.</p>
+      <div class="toolbar">
+        <button id="add-mode" class="primary">New mode</button>
+        <button id="restore-modes">Restore built-in modes</button>
+      </div>
+      <div id="mode-list"></div>
+    </section>
+
+    <!-- --------------------------------------------------- dictionary -->
+    <section id="dictionary">
+      <h2>Dictionary</h2>
+      <p class="lede">Names and jargon the model should get right, plus literal replacements applied afterwards.</p>
+
+      <div class="card">
+        <div class="toolbar">
+          <input type="text" id="word-input" placeholder="Kubernetes, Anchor1MC, Dr. Okonjo…" />
+          <button id="add-word">Add word</button>
+          <span class="hint">Sent to the model as a spelling hint where the engine supports it.</span>
+        </div>
+        <div class="list" id="word-list"></div>
+      </div>
+
+      <h3>Replacements</h3>
+      <div class="card">
+        <div class="toolbar">
+          <input type="text" id="repl-from" placeholder="spoken form" />
+          <input type="text" id="repl-to" placeholder="written form" />
+          <button id="add-repl">Add replacement</button>
+        </div>
+        <div class="list" id="repl-list"></div>
+      </div>
+
+      <h3>Cleanup</h3>
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>Remove filler words</label><div class="desc">Drops "um", "uh" and friends before anything else runs.</div></div>
+          <div class="control"><input type="checkbox" data-setting="dictionary.removeFillers" /></div>
+        </div>
+        <div class="row stack">
+          <div class="info"><label>Filler word list</label><div class="desc">One per line.</div></div>
+          <div class="control"><textarea id="filler-words"></textarea></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Capitalize sentences</label><div class="desc">And the standalone word "i".</div></div>
+          <div class="control"><input type="checkbox" data-setting="dictionary.autoCapitalize" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Add a final full stop</label><div class="desc">When the transcript ends mid-sentence.</div></div>
+          <div class="control"><input type="checkbox" data-setting="dictionary.autoPunctuate" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Tidy whitespace</label><div class="desc">Collapse runs of spaces and fix spacing before punctuation.</div></div>
+          <div class="control"><input type="checkbox" data-setting="dictionary.trimWhitespace" /></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- power mode -->
+    <section id="power">
+      <h2>Power Mode</h2>
+      <p class="lede">Per-site profiles. The first matching profile wins, and its settings replace the global ones for that dictation.</p>
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>Enable Power Mode</label><div class="desc">Off means the global settings always apply.</div></div>
+          <div class="control"><input type="checkbox" data-setting="powerMode.enabled" /></div>
+        </div>
+      </div>
+      <div class="toolbar"><button id="add-profile" class="primary">New profile</button></div>
+      <div id="profile-list"></div>
+    </section>
+
+    <!-- ------------------------------------------------------ history -->
+    <section id="history">
+      <h2>History</h2>
+      <p class="lede">Everything you have dictated, stored only on this device.</p>
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>Keep a history</label><div class="desc">Turn off and nothing is written down.</div></div>
+          <div class="control"><input type="checkbox" data-setting="history.enabled" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Keep entries for</label><div class="desc">Days. 0 keeps them forever.</div></div>
+          <div class="control"><input type="number" min="0" max="3650" data-setting="history.retainDays" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Maximum entries</label><div class="desc">Oldest are dropped past this.</div></div>
+          <div class="control"><input type="number" min="0" max="100000" step="50" data-setting="history.maxEntries" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Keep the audio too</label><div class="desc">Lets you replay and re-transcribe. Uses much more space.</div></div>
+          <div class="control"><input type="checkbox" data-setting="history.saveAudio" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Keep audio for</label><div class="desc">Days. Text outlives it.</div></div>
+          <div class="control"><input type="number" min="0" max="365" data-setting="history.audioRetainDays" /></div>
+        </div>
+      </div>
+
+      <div class="card"><div class="stats" id="history-stats"></div></div>
+
+      <div class="toolbar">
+        <input type="text" id="history-search" placeholder="Search transcripts…" />
+        <button id="refresh-history">Refresh</button>
+        <button id="export-json">Export JSON</button>
+        <button id="export-csv">Export CSV</button>
+        <button id="export-txt">Export text</button>
+        <span class="spacer"></span>
+        <button id="clear-history" class="danger">Clear history</button>
+      </div>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- ----------------------------------------------------- advanced -->
+    <section id="advanced">
+      <h2>Advanced</h2>
+      <p class="lede">Performance and diagnostics.</p>
+      <div class="card">
+        <div class="row">
+          <div class="info"><label>Keep the model in memory</label><div class="desc">Faster repeat dictations; holds on to several hundred megabytes.</div></div>
+          <div class="control"><input type="checkbox" data-setting="advanced.keepModelWarm" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Unload after</label><div class="desc">Minutes idle. 0 keeps it loaded indefinitely.</div></div>
+          <div class="control"><input type="number" min="0" max="600" data-setting="advanced.unloadAfterMinutes" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>CPU threads</label><div class="desc">For the WASM backend. <code>auto</code> uses up to four.</div></div>
+          <div class="control"><input type="text" data-setting="advanced.numThreads" /></div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Log level</label><div class="desc">Visible in the extension's service worker console.</div></div>
+          <div class="control">
+            <select data-setting="advanced.logLevel">
+              <option value="silent">Silent</option>
+              <option value="error">Errors</option>
+              <option value="warn">Warnings</option>
+              <option value="info">Info</option>
+              <option value="debug">Debug</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="info"><label>Settings</label><div class="desc">Export to move them to another Chromebook, or start over.</div></div>
+          <div class="control">
+            <button id="export-settings">Export</button>
+            <button id="import-settings">Import</button>
+            <button id="reset-settings" class="danger">Reset all</button>
+          </div>
+        </div>
+      </div>
+      <p class="hint" id="version-line"></p>
+    </section>
+  </main>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="import-file" accept="application/json" hidden />
+<script type="module" src="options.js"></script>
+</body>
+</html>

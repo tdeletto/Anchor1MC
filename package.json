@@ -1,0 +1,20 @@
+{
+  "name": "anchor1mc",
+  "version": "0.1.0",
+  "description": "Anchor1MC \u2014 AI-assisted voice typing for Chromebooks. A Chrome extension with local Parakeet V3 / Whisper transcription.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "build": "npm run vendor && npm run icons && node scripts/package.mjs",
+    "zip": "node scripts/package.mjs",
+    "test": "node scripts/test.mjs",
+    "check": "node scripts/check.mjs",
+    "verify": "npm run check && npm test"
+  },
+  "devDependencies": {
+    "@huggingface/transformers": "4.2.0",
+    "fake-indexeddb": "^6.2.5"
+  }
+}
