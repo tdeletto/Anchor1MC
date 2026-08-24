@@ -162,7 +162,23 @@ for (const match of offscreenSource.matchAll(/^import\s+[^;]*?from\s+'([^']+)';/
   if (seen.size < 8) fail(`offscreen graph walk only reached ${seen.size} files; the import scan is probably broken`);
 }
 
-// 8 — vendored runtime present -------------------------------------------
+// 8 — IndexedDB transactions must not span an await ------------------------
+// A transaction is only active for the task that created it. Creating one
+// inside a promise callback and issuing the request after a later await works
+// when called from a fresh event handler and fails when called deep in a chain
+// of awaits — a difference no test with an in-memory IndexedDB will catch,
+// because those do not enforce transaction lifetime.
+{
+  const historySource = readFileSync(join(root, 'src/lib/history.js'), 'utf8');
+  if (/\.then\(\s*\(?db\)?\s*=>\s*db\.transaction\(/.test(historySource)) {
+    fail('history.js creates a transaction inside a promise callback; open the connection first, then create the transaction and issue requests synchronously');
+  }
+  if (/await\s+tx\(/.test(historySource)) {
+    fail('history.js awaits a transaction before using it, which leaves it inactive by the time the request is issued');
+  }
+}
+
+// 9 — vendored runtime present -------------------------------------------
 // Entry points only; the wasm variants are derived from these below rather
 // than listed, since which ones are needed changes with the runtime version.
 for (const required of [

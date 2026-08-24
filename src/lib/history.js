@@ -22,14 +22,48 @@ function open() {
   return dbPromise;
 }
 
-function tx(mode) {
-  return open().then((db) => db.transaction(STORE, mode).objectStore(STORE));
-}
-
-function done(request) {
+/**
+ * Run work inside one transaction.
+ *
+ * The connection is awaited *before* the transaction is created, and every
+ * request is then issued synchronously inside `fn`. That ordering is the whole
+ * point: an IndexedDB transaction is only active for the task that created it,
+ * so creating one inside a promise callback and issuing the request after a
+ * later `await` — as an earlier version did — leaves a window where the
+ * transaction has already gone inactive and the request throws. It survived
+ * being called straight from a click handler and failed when called deep in a
+ * chain of awaits, which is exactly the shape a dictation takes.
+ *
+ * Resolving on `oncomplete` rather than on the request also means a write is
+ * durable before the caller is told it succeeded, which matters in a service
+ * worker that can be terminated at any point.
+ *
+ * @param {IDBTransactionMode} mode
+ * @param {(store: IDBObjectStore) => any} fn issues requests synchronously;
+ *   its return value, or whatever it accumulates, resolves once the
+ *   transaction commits
+ */
+async function withStore(mode, fn) {
+  const db = await open();
   return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    let transaction;
+    try {
+      transaction = db.transaction(STORE, mode);
+    } catch (err) {
+      reject(err);
+      return;
+    }
+    let value;
+    let failed = null;
+    try {
+      value = fn(transaction.objectStore(STORE), transaction);
+    } catch (err) {
+      failed = err;
+      try { transaction.abort(); } catch { /* already aborting */ }
+    }
+    transaction.oncomplete = () => (failed ? reject(failed) : resolve(value?.result ?? value));
+    transaction.onerror = () => reject(failed ?? transaction.error);
+    transaction.onabort = () => reject(failed ?? transaction.error ?? new Error('History transaction aborted'));
   });
 }
 
@@ -56,22 +90,21 @@ export async function addEntry(entry) {
     ...entry,
   };
   record.wordCount = (record.final || record.raw).trim().split(/\s+/).filter(Boolean).length;
-  await done((await tx('readwrite')).put(record));
+  await withStore('readwrite', (store) => { store.put(record); });
   return record;
 }
 
 export async function listEntries({ limit = 100, offset = 0, query = '' } = {}) {
-  const store = await tx('readonly');
-  const index = store.index('ts');
   const out = [];
   const needle = query.trim().toLowerCase();
   let skipped = 0;
-  await new Promise((resolve, reject) => {
+
+  await withStore('readonly', (store) => {
     // Newest first.
-    const req = index.openCursor(null, 'prev');
+    const req = store.index('ts').openCursor(null, 'prev');
     req.onsuccess = () => {
       const cursor = req.result;
-      if (!cursor || out.length >= limit) return resolve();
+      if (!cursor || out.length >= limit) return;
       const v = cursor.value;
       const matches = !needle
         || (v.final || '').toLowerCase().includes(needle)
@@ -86,39 +119,37 @@ export async function listEntries({ limit = 100, offset = 0, query = '' } = {}) 
       }
       cursor.continue();
     };
-    req.onerror = () => reject(req.error);
   });
   return out;
 }
 
 export async function getEntry(id) {
-  return done((await tx('readonly')).get(id));
+  return withStore('readonly', (store) => store.get(id));
 }
 
 export async function deleteEntry(id) {
-  return done((await tx('readwrite')).delete(id));
+  return withStore('readwrite', (store) => { store.delete(id); });
 }
 
 export async function clearHistory() {
-  return done((await tx('readwrite')).clear());
+  return withStore('readwrite', (store) => { store.clear(); });
 }
 
 export async function countEntries() {
-  return done((await tx('readonly')).count());
+  return withStore('readonly', (store) => store.count());
 }
 
 /** Drop entries past the age or count limit. */
 export async function prune({ retainDays, maxEntries }) {
-  const store = await tx('readwrite');
   const now = Date.now();
   const entryCutoff = retainDays > 0 ? now - retainDays * 864e5 : 0;
   const keep = [];
 
-  await new Promise((resolve, reject) => {
+  await withStore('readwrite', (store) => {
     const req = store.index('ts').openCursor(null, 'prev');
     req.onsuccess = () => {
       const cursor = req.result;
-      if (!cursor) return resolve();
+      if (!cursor) return;
       const v = cursor.value;
       const tooOld = entryCutoff && v.ts < entryCutoff;
       const overflow = maxEntries > 0 && keep.length >= maxEntries;
@@ -134,7 +165,6 @@ export async function prune({ retainDays, maxEntries }) {
       }
       cursor.continue();
     };
-    req.onerror = () => reject(req.error);
   });
   return keep.length;
 }
