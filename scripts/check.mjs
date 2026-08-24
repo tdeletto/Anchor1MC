@@ -178,7 +178,26 @@ for (const match of offscreenSource.matchAll(/^import\s+[^;]*?from\s+'([^']+)';/
   }
 }
 
-// 9 — vendored runtime present -------------------------------------------
+// 9 — every element a page's script reaches for must exist -----------------
+// querySelector returns null for a typo or a missing id, and the failure lands
+// as "cannot set properties of null" wherever it was touched — which took out
+// the whole render pass, and every event listener registered after it, for want
+// of one id. Cheap to verify statically; expensive to find at runtime.
+for (const [script, markup] of [
+  ['src/options/options.js', 'src/options/options.html'],
+  ['src/popup/popup.js', 'src/popup/popup.html'],
+]) {
+  const scriptSource = readFileSync(join(root, script), 'utf8');
+  const markupSource = readFileSync(join(root, markup), 'utf8');
+  const declared = new Set([...markupSource.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
+  const wanted = new Set([...scriptSource.matchAll(/\$(?:must)?\('#([A-Za-z0-9_-]+)'\)/g)].map((m) => m[1]));
+  for (const id of [...wanted].sort()) {
+    if (!declared.has(id)) fail(`${script} looks for #${id}, which ${markup} does not define`);
+  }
+  if (!wanted.size) fail(`found no element lookups in ${script}; the scan is probably broken`);
+}
+
+// 10 — vendored runtime present ------------------------------------------
 // Entry points only; the wasm variants are derived from these below rather
 // than listed, since which ones are needed changes with the runtime version.
 for (const required of [

@@ -8,6 +8,20 @@ import { modifierOptions, keyLabel, commandLabel, isMac } from '../lib/keys.js';
 import * as history from '../lib/history.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
+
+/**
+ * Query for an element that must exist, and say which one is missing.
+ *
+ * A null from $() surfaces as "cannot set properties of null" at whatever line
+ * touched it, which took down renderAll and with it wireEvents — leaving every
+ * button on the page inert for want of one id. The static check now catches
+ * this before it ships; this makes the runtime failure name itself.
+ */
+const $must = (sel) => {
+  const el = document.querySelector(sel);
+  if (!el) throw new Error(`Settings page is missing ${sel}`);
+  return el;
+};
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 let settings = null;
@@ -68,12 +82,7 @@ function onSettingsApplied(path) {
   if (path === 'enhancement.provider') renderProviderPanels();
   if (path === 'enhancement.modes' || path === 'enhancement.activeModeId') renderModeSelect();
   // Download sizes and model notes depend on the model and precision picked.
-  if (path === 'hotkeys.modifierKey') {
-    $('#welcome-hotkey').textContent = keyLabel(settings.hotkeys.modifierKey);
-    $('#modifier-key-note').textContent = settings.hotkeys.modifierKey.startsWith('Meta') && !isMac
-      ? 'Held down while you speak. ChromeOS claims the Search key for itself, so this one may not reach the extension.'
-      : 'Held down while you speak.';
-  }
+  if (path === 'hotkeys.modifierKey') renderHotkeyLabels();
   if (path.startsWith('transcription.') || path.startsWith('enhancement.browser.')) {
     renderModelSelects();
     refreshModelStatus();
@@ -915,24 +924,38 @@ function wireEvents() {
 }
 
 function renderAll() {
-  bindControls();
-  fillSelect($('#language-select'), LANGUAGES, settings.transcription.language);
-  fillSelect($('#modifier-key'), modifierOptions(), settings.hotkeys.modifierKey);
-  $('#welcome-hotkey').textContent = keyLabel(settings.hotkeys.modifierKey);
-  $('#modifier-key-note').textContent = settings.hotkeys.modifierKey.startsWith('Meta') && !isMac
+  // Each section is rendered independently: one section failing should cost
+  // that section, not the rest of the page and every event listener with it.
+  const sections = [
+    ['controls', () => bindControls()],
+    ['languages', () => fillSelect($('#language-select'), LANGUAGES, settings.transcription.language)],
+    ['hotkeys', renderHotkeyLabels],
+    ['models', renderModelSelects],
+    ['panels', () => { renderEnginePanels(); renderProviderPanels(); }],
+    ['modes', () => { renderModeSelect(); renderModes(); }],
+    ['dictionary', () => { renderWords(); renderReplacements(); }],
+    ['sites', renderDisabledSites],
+    ['power mode', renderProfiles],
+    ['derived text', renderDerived],
+    ['history', renderHistory],
+  ];
+  for (const [name, render] of sections) {
+    try {
+      render();
+    } catch (err) {
+      console.error(`[anchor1mc] could not render the ${name} section`, err);
+      toast(`Could not render the ${name} section: ${err.message}`);
+    }
+  }
+}
+
+function renderHotkeyLabels() {
+  fillSelect($must('#modifier-key'), modifierOptions(), settings.hotkeys.modifierKey);
+  const meta = settings.hotkeys.modifierKey.startsWith('Meta');
+  $must('#welcome-hotkey').textContent = keyLabel(settings.hotkeys.modifierKey);
+  $must('#modifier-key-note').textContent = meta && !isMac
     ? 'Held down while you speak. ChromeOS claims the Search key for itself, so this one may not reach the extension.'
     : 'Held down while you speak.';
-  renderModelSelects();
-  renderEnginePanels();
-  renderProviderPanels();
-  renderModeSelect();
-  renderModes();
-  renderDisabledSites();
-  renderWords();
-  renderReplacements();
-  renderProfiles();
-  renderDerived();
-  renderHistory();
 }
 
 async function init() {
