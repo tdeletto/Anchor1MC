@@ -331,11 +331,24 @@ async function deliver(result) {
  * empty history looks identical whether nothing was written or every write
  * threw.
  */
+let lastAnnouncedHistoryProblem = null;
+
 async function noteHistoryWrite(outcome) {
   try {
     await chrome.storage.local.set({ lastHistoryWrite: { ...outcome, at: Date.now() } });
   } catch (err) {
     log.warn('could not record the history-write outcome', err?.message ?? err);
+  }
+
+  // Say so once when a dictation is not saved. Silence here is what made this
+  // look like a broken feature rather than a setting or an error, and repeating
+  // it every dictation would be its own nuisance — so only on a change.
+  const problem = outcome.phase === 'skipped' || outcome.phase === 'failed' ? outcome.reason : null;
+  if (problem && problem !== lastAnnouncedHistoryProblem) {
+    notify('Dictation not saved to history', problem);
+  }
+  if (outcome.phase === 'written' || problem !== lastAnnouncedHistoryProblem) {
+    lastAnnouncedHistoryProblem = problem;
   }
 }
 

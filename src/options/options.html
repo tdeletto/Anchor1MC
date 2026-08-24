@@ -557,6 +557,12 @@
     <section id="history">
       <h2>History</h2>
       <p class="lede">Everything you have dictated, stored only on this device.</p>
+
+      <div class="banner warn" id="history-off-banner" hidden>
+        <h3>History is switched off</h3>
+        <p>Dictations are not being saved. Entries written by the test button below still appear, which can make this look like a fault rather than a setting.</p>
+        <button id="enable-history" class="primary">Turn history on</button>
+      </div>
       <div class="card">
         <div class="row">
           <div class="info"><label>Keep a history</label><div class="desc">Turn off and nothing is written down.</div></div>
@@ -580,7 +586,10 @@
             <label>Storage</label>
             <div class="desc" id="history-diagnostics">Checking…</div>
           </div>
-          <div class="control"><button id="history-selftest">Write a test entry</button></div>
+          <div class="control">
+            <button id="history-selftest">Write a test entry</button>
+            <button id="copy-diagnostics">Copy diagnostics</button>
+          </div>
         </div>
       </div>
 

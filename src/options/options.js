@@ -536,6 +536,9 @@ let historyQuery = '';
  */
 async function renderHistoryDiagnostics() {
   const line = $('#history-diagnostics');
+  // Shown whatever the list contains. Tying this to an empty list meant that
+  // writing a single test entry hid the most likely explanation for good.
+  $('#history-off-banner').hidden = settings.history.enabled;
   try {
     const count = await history.countEntries();
     const { lastHistoryWrite: last } = await chrome.storage.local.get('lastHistoryWrite');
@@ -831,6 +834,28 @@ function wireEvents() {
   // Writes straight from this page, bypassing the worker entirely. If the entry
   // appears, the database and this list are fine and the problem is upstream in
   // the dictation path; if it does not, the problem is here.
+  $('#enable-history').addEventListener('click', async () => {
+    settings = await updateSettings((s) => { s.history.enabled = true; });
+    bindControls();
+    renderHistory();
+    toast('History is on. Dictations from now on will be saved.');
+  });
+
+  $('#copy-diagnostics').addEventListener('click', async () => {
+    // One click to hand over everything needed to diagnose a missing entry.
+    const { lastHistoryWrite } = await chrome.storage.local.get('lastHistoryWrite');
+    const report = {
+      version: chrome.runtime.getManifest().version,
+      historySettings: settings.history,
+      entriesInDatabase: await history.countEntries().catch((err) => `error: ${err.message}`),
+      lastHistoryWrite: lastHistoryWrite ?? null,
+      engine: settings.transcription.engine,
+      enhancement: { enabled: settings.enhancement.enabled, provider: settings.enhancement.provider },
+    };
+    await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+    toast('Diagnostics copied to the clipboard.');
+  });
+
   $('#history-selftest').addEventListener('click', async () => {
     try {
       await history.addEntry({
