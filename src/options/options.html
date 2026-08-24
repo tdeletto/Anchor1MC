@@ -525,11 +525,11 @@
       <h3>Cleanup</h3>
       <div class="card">
         <div class="row">
-          <div class="info"><label>Remove filler words</label><div class="desc">Drops "um", "uh" and friends before anything else runs.</div></div>
+          <div class="info"><label>Remove filler words</label><div class="desc">Drops "um", "uh" and other hesitation sounds. AI enhancement already removes these, so this is mainly for dictating without it.</div></div>
           <div class="control"><input type="checkbox" data-setting="dictionary.removeFillers" /></div>
         </div>
         <div class="row stack">
-          <div class="info"><label>Filler word list</label><div class="desc">One per line.</div></div>
+          <div class="info"><label>Filler word list</label><div class="desc">One per line. Adding a word that is only sometimes a filler — "like", "actually" — will cut it out of sentences where it carried meaning.</div></div>
           <div class="control"><textarea id="filler-words"></textarea></div>
         </div>
         <div class="row">

@@ -41,7 +41,7 @@ const { postProcess, applyReplacements, removeFillers, unwrapModelOutput, autoCa
 const { resolveProfile, applyProfile, profileMatches, isSiteDisabled, makeProfile } = await load('src/lib/power-mode.js');
 const { SilenceDetector, rms } = await load('src/audio/vad.js');
 const { MelSpectrogram } = await load('src/audio/mel.js');
-const { DEFAULTS } = await load('src/lib/defaults.js');
+const { DEFAULTS, DEFAULT_FILLER_WORDS } = await load('src/lib/defaults.js');
 const settingsModule = await load('src/lib/settings.js');
 
 // ------------------------------------------------------------------ text --
@@ -63,6 +63,19 @@ await test('a malformed user regex does not break the pipeline', () => {
 
 await test('filler removal leaves clean spacing', () => {
   assert.equal(removeFillers('um so uh yes', ['um', 'uh']).replace(/\s+/g, ' ').trim(), 'so yes');
+});
+
+await test('the default filler list never removes a meaning-bearing word', () => {
+  // A word-boundary regex cannot tell a filler "like" from a verb, so the
+  // shipped list contains only sounds that are never anything else.
+  const strip = (text) => removeFillers(text, DEFAULT_FILLER_WORDS).replace(/\s+/g, ' ').trim();
+  assert.equal(strip('I like it a lot'), 'I like it a lot');
+  assert.equal(strip('she actually finished the migration'), 'she actually finished the migration');
+  assert.equal(strip('kind of blue, sort of green'), 'kind of blue, sort of green');
+  assert.equal(strip('you know what I mean'), 'you know what I mean');
+  assert.equal(strip('basically a rewrite'), 'basically a rewrite');
+  // And still does its actual job.
+  assert.equal(strip('um so uh I think erm yes'), 'so I think yes');
 });
 
 await test('capitalization handles sentences and the pronoun I', () => {
