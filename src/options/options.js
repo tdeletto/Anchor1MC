@@ -757,11 +757,6 @@ function wireEvents() {
     renderReplacements();
   });
 
-  $('#filler-words').addEventListener('change', async (e) => {
-    const words = e.target.value.split('\n').map((w) => w.trim()).filter(Boolean);
-    settings = await updateSettings((s) => { s.dictionary.fillerWords = words; });
-  });
-
   $('#add-mode').addEventListener('click', async () => {
     settings = await updateSettings((s) => {
       s.enhancement.modes.push({
@@ -883,7 +878,6 @@ function renderAll() {
   renderReplacements();
   renderProfiles();
   renderDerived();
-  $('#filler-words').value = (settings.dictionary.fillerWords ?? []).join('\n');
   renderHistory();
 }
 

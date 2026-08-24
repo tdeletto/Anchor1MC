@@ -242,7 +242,7 @@ async function stopCaptureAndTranscribe({ context, settings: overrideSettings })
     });
     // Replacements run again so dictionary spellings survive the rewrite.
     final = settings.dictionary.replacements.length
-      ? postProcess(result.text, { ...settings.dictionary, removeFillers: false, autoPunctuate: false })
+      ? postProcess(result.text, { ...settings.dictionary, autoPunctuate: false })
       : result.text;
     enhanced = result.enhanced;
     enhanceError = result.error ?? null;

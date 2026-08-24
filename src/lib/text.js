@@ -1,7 +1,7 @@
 /**
  * Deterministic post-processing applied to every transcript, before and
- * independently of any AI enhancement: dictionary replacements, filler removal,
- * capitalization and spacing cleanup.
+ * independently of any AI enhancement: dictionary replacements, capitalization
+ * and spacing cleanup.
  */
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -27,18 +27,6 @@ export function applyReplacements(text, replacements = []) {
     } catch {
       // A malformed user regex should never break a dictation.
     }
-  }
-  return out;
-}
-
-export function removeFillers(text, fillers = []) {
-  let out = text;
-  for (const word of fillers) {
-    const w = (word ?? '').trim();
-    if (!w) continue;
-    // Eat the filler plus one adjacent comma/space so we do not leave ", ,".
-    const re = new RegExp(`(^|[\\s,])${escapeRe(w)}\\b[,]?\\s*`, 'gi');
-    out = out.replace(re, (m, lead) => (lead === ' ' || lead === '' ? lead : `${lead} `));
   }
   return out;
 }
@@ -72,9 +60,7 @@ export function tidyWhitespace(text) {
  */
 export function postProcess(text, dict) {
   if (!text) return '';
-  let out = text;
-  if (dict.removeFillers) out = removeFillers(out, dict.fillerWords);
-  out = applyReplacements(out, dict.replacements);
+  let out = applyReplacements(text, dict.replacements);
   if (dict.trimWhitespace) out = tidyWhitespace(out);
   if (dict.autoCapitalize) out = autoCapitalize(out);
   if (dict.autoPunctuate) out = autoPunctuate(out);

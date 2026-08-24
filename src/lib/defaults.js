@@ -112,20 +112,6 @@ export const BUILTIN_MODES = [
   },
 ];
 
-/**
- * Non-lexical hesitations only.
- *
- * Words like "like", "actually", "basically", "kind of" and "you know" are
- * fillers only sometimes, and a word-boundary regex cannot tell which time it
- * is looking at: it turns "I like it a lot" into "I it a lot" and "you know
- * what I mean" into "what". Judging that needs a model, so it is left to the AI
- * modes, which already remove disfluencies. What stays here is the set that is
- * never anything but a hesitation.
- */
-export const DEFAULT_FILLER_WORDS = [
-  'um', 'uh', 'uhm', 'erm', 'hmm', 'mm', 'mhm', 'ah', 'er',
-];
-
 export const DEFAULTS = {
   version: SETTINGS_VERSION,
   /** Master switch. Off means hotkeys are ignored everywhere. */
@@ -254,8 +240,6 @@ export const DEFAULTS = {
     words: [],
     /** [{ from, to, matchCase, regex }] applied after transcription. */
     replacements: [],
-    removeFillers: false,
-    fillerWords: DEFAULT_FILLER_WORDS,
     autoCapitalize: true,
     autoPunctuate: false,
     trimWhitespace: true,
